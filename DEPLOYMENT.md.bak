@@ -124,7 +124,7 @@ wrangler pages deploy .
 ```bash
 # After site is deployed, visit the URL
 # Press M-x, type "register"
-# Username: jaganat@mail.com
+# Username: jaganat
 # Password: Emacs108 (automatic)
 ```
 

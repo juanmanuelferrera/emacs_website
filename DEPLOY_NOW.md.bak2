@@ -155,14 +155,13 @@ Output will show:
 2. Press `M-x` (Alt+x or Option+x)
 3. Type `register-user`
 4. Fill in:
-   - Email (Username): `jaganat@mail.com`
+   - Username: `jaganat`
    - Full Name: `Jagannath Mishra Dasa`
+   - Email: `your@email.com`
 5. Press `C-c C-c` or click "Register"
 6. Check your email for password
 7. Press `M-x` → type `login`
-8. Enter your email (username) and password from email
-
-**Note:** Your email IS your username for login.
+8. Enter your username and password from email
 
 ## Verification Checklist
 

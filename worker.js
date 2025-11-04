@@ -102,7 +102,7 @@ function generatePassword(length = 12) {
 }
 
 // Send email using Mailgun (you'll need to set MAILGUN_API_KEY and MAILGUN_DOMAIN in env)
-async function sendEmail(to, subject, text, env) {
+async function sendEmail(to, subject, text, env, html = null) {
   // Check if Mailgun is configured
   if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN) {
     console.error('Mailgun not configured. Set MAILGUN_API_KEY and MAILGUN_DOMAIN');
@@ -114,6 +114,9 @@ async function sendEmail(to, subject, text, env) {
   formData.append('to', to);
   formData.append('subject', subject);
   formData.append('text', text);
+  if (html) {
+    formData.append('html', html);
+  }
 
   const response = await fetch(
     `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
@@ -225,8 +228,9 @@ async function registerWithEmail(request, env, corsHeaders) {
   const data = await request.json();
   const { username, name, email } = data;
 
-  if (!username || username.length < 3) {
-    return new Response(JSON.stringify({ error: 'Username must be at least 3 characters' }), {
+  // Username IS the email
+  if (!username || !username.includes('@')) {
+    return new Response(JSON.stringify({ error: 'Valid email address required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -239,6 +243,7 @@ async function registerWithEmail(request, env, corsHeaders) {
     });
   }
 
+  // Email is same as username
   if (!email || !email.includes('@')) {
     return new Response(JSON.stringify({ error: 'Valid email required' }), {
       status: 400,
@@ -274,21 +279,78 @@ async function registerWithEmail(request, env, corsHeaders) {
 
 Your account has been created successfully.
 
-Username: ${username}
+Username (Email): ${username}
 Password: ${password}
 
 Please save this password securely. You can login at the website using these credentials.
 
-Visit the site and press M-x, then type "login" to access your account.
+Getting Started:
+1. Visit the site and press M-x (Alt+x or Option+x)
+2. Type "login" to access your account
+3. Enter your email and password above
+
+Learn More:
+For complete documentation and features, visit:
+https://github.com/jaganat/emacs-website
+
+Quick Keyboard Shortcuts:
+- M-x : Open command palette
+- M-m : Toggle sidebar menu
+- C-n : Create new page
+- C-e : Edit page
+- C-h : Show help
 
 ---
 This is an automated message. Please do not reply to this email.`;
+
+  // HTML version with clickable links
+  const emailHtml = `
+    <div style="font-family: 'Courier New', monospace; background: #000; color: #fff; padding: 40px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #1e1e1e; border: 2px solid #00d3d0; padding: 30px;">
+        <h2 style="color: #00d3d0; margin-top: 0;">Welcome to the Emacs Website!</h2>
+
+        <p>Your account has been created successfully.</p>
+
+        <div style="background: #2a2a2a; padding: 15px; margin: 20px 0; border-left: 3px solid #00d3d0;">
+          <p style="margin: 5px 0;"><strong>Username (Email):</strong> ${username}</p>
+          <p style="margin: 5px 0;"><strong>Password:</strong> ${password}</p>
+        </div>
+
+        <p style="color: #d0bc00;">⚠️ Please save this password securely.</p>
+
+        <h3 style="color: #44bc44;">Getting Started:</h3>
+        <ol style="line-height: 1.8;">
+          <li>Visit the site and press <code style="background: #2a2a2a; padding: 2px 6px; color: #00d3d0;">M-x</code> (Alt+x or Option+x)</li>
+          <li>Type <code style="background: #2a2a2a; padding: 2px 6px; color: #00d3d0;">login</code> to access your account</li>
+          <li>Enter your email and password above</li>
+        </ol>
+
+        <h3 style="color: #44bc44;">Learn More:</h3>
+        <p>For complete documentation and features, visit:</p>
+        <p><a href="https://github.com/jaganat/emacs-website" style="color: #00d3d0; text-decoration: none; font-weight: bold;">📖 GitHub README</a></p>
+
+        <h3 style="color: #44bc44;">Quick Keyboard Shortcuts:</h3>
+        <ul style="list-style: none; padding-left: 0;">
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-x</code> : Open command palette</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-m</code> : Toggle sidebar menu</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-n</code> : Create new page</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-e</code> : Edit page</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-h</code> : Show help</li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #3a3a3a; margin: 30px 0;">
+
+        <p style="color: #989898; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
 
   const emailSent = await sendEmail(
     email,
     'Your Emacs Website Account',
     emailText,
-    env
+    env,
+    emailHtml
   );
 
   if (!emailSent) {

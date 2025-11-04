@@ -669,10 +669,11 @@ ${text}
             </div>
             <div style="color: var(--fg-dim); font-size: 12px; margin-bottom: 20px;">
                 A random password will be generated and emailed to you.
+                Your email will be your username.
             </div>
             <div style="margin-bottom: 15px;">
-                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Username:</label>
-                <input type="text" id="reg-username" style="
+                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Email (Username):</label>
+                <input type="email" id="reg-username" style="
                     width: 100%;
                     background: var(--bg-main);
                     border: 1px solid var(--bg-active);
@@ -680,9 +681,9 @@ ${text}
                     padding: 8px;
                     font-family: inherit;
                     font-size: 14px;
-                " placeholder="jaganat">
+                " placeholder="jaganat@mail.com">
             </div>
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 20px;">
                 <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Full Name:</label>
                 <input type="text" id="reg-name" style="
                     width: 100%;
@@ -693,18 +694,6 @@ ${text}
                     font-family: inherit;
                     font-size: 14px;
                 " placeholder="Jagannath Mishra Dasa">
-            </div>
-            <div style="margin-bottom: 20px;">
-                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Email:</label>
-                <input type="email" id="reg-email" style="
-                    width: 100%;
-                    background: var(--bg-main);
-                    border: 1px solid var(--bg-active);
-                    color: var(--fg-main);
-                    padding: 8px;
-                    font-family: inherit;
-                    font-size: 14px;
-                " placeholder="jaganat@example.com">
             </div>
             <div style="display: flex; gap: 10px;">
                 <button id="reg-submit" style="
@@ -754,7 +743,6 @@ ${text}
 
         const usernameInput = document.getElementById('reg-username');
         const nameInput = document.getElementById('reg-name');
-        const emailInput = document.getElementById('reg-email');
         const submitBtn = document.getElementById('reg-submit');
         const cancelBtn = document.getElementById('reg-cancel');
         const messageDiv = document.getElementById('reg-message');
@@ -763,12 +751,12 @@ ${text}
 
         // Handle submission
         const handleSubmit = async () => {
-            const username = usernameInput.value.trim();
+            const username = usernameInput.value.trim(); // This is the email
             const name = nameInput.value.trim();
-            const email = emailInput.value.trim();
+            const email = username; // Username IS the email
 
-            if (!username || username.length < 3) {
-                messageDiv.textContent = 'Username must be at least 3 characters';
+            if (!username || !username.includes('@')) {
+                messageDiv.textContent = 'Valid email address is required';
                 messageDiv.style.display = 'block';
                 messageDiv.style.background = 'var(--red)';
                 messageDiv.style.color = 'var(--bg-main)';
@@ -777,14 +765,6 @@ ${text}
 
             if (!name) {
                 messageDiv.textContent = 'Full name is required';
-                messageDiv.style.display = 'block';
-                messageDiv.style.background = 'var(--red)';
-                messageDiv.style.color = 'var(--bg-main)';
-                return;
-            }
-
-            if (!email || !email.includes('@')) {
-                messageDiv.textContent = 'Valid email is required';
                 messageDiv.style.display = 'block';
                 messageDiv.style.background = 'var(--red)';
                 messageDiv.style.color = 'var(--bg-main)';
@@ -873,7 +853,7 @@ ${text}
     async function loginUser() {
         closeMinibuffer();
 
-        const username = prompt('Username:');
+        const username = prompt('Email (Username):');
         if (!username) return;
 
         const password = prompt('Password:');
