@@ -1,0 +1,281 @@
+/* Emacs-style Website Styling - Clean Version with M-x */
+
+/* CSS Variables for Modus Vivendi theme colors */
+:root {
+    --bg-main: #000000;
+    --fg-main: #ffffff;
+    --bg-dim: #1e1e1e;
+    --bg-active: #323232;
+    --fg-dim: #989898;
+    --blue: #2fafff;
+    --cyan: #00d3d0;
+    --green: #44bc44;
+    --magenta: #feacd0;
+    --red: #ff5f59;
+    --yellow: #d0bc00;
+    --modeline-bg: #191a1b;
+    --modeline-fg: #ffffff;
+    --minibuffer-bg: #1e1e1e;
+    --completion-bg: #2a2a2a;
+    --completion-selected: #3a3a3a;
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    font-size: 16px;
+    line-height: 1.6;
+    background-color: var(--bg-main);
+    color: var(--fg-main);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Main window (buffer area) */
+.window {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    background-color: var(--bg-main);
+}
+
+.buffer {
+    display: none;
+    height: 100%;
+    overflow: auto;
+}
+
+.buffer.active {
+    display: block;
+}
+
+.buffer-content {
+    padding: 40px 60px;
+    max-width: 1000px;
+    margin: 0 auto;
+    white-space: pre-wrap;
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    line-height: 1.8;
+    font-size: 16px;
+}
+
+/* Mode line styling */
+.mode-line {
+    background-color: var(--modeline-bg);
+    color: var(--modeline-fg);
+    padding: 4px 12px;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid var(--bg-active);
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+}
+
+.mode-line-buffer {
+    font-weight: bold;
+    color: var(--cyan);
+}
+
+.mode-line-separator {
+    color: var(--fg-dim);
+}
+
+.mode-line-mode {
+    color: var(--green);
+}
+
+.mode-line-position {
+    color: var(--fg-main);
+}
+
+.mode-line-spacer {
+    flex: 1;
+}
+
+.mode-line-time {
+    color: var(--magenta);
+}
+
+/* Minibuffer styling */
+.minibuffer {
+    display: none;
+    background-color: var(--minibuffer-bg);
+    border-top: 2px solid var(--bg-active);
+    padding: 8px 12px;
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    font-size: 14px;
+    position: fixed;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+}
+
+.minibuffer.active {
+    display: flex;
+    align-items: center;
+}
+
+.minibuffer-prompt {
+    color: var(--cyan);
+    margin-right: 8px;
+    font-weight: bold;
+}
+
+.minibuffer-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--fg-main);
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    font-size: 14px;
+    caret-color: var(--fg-main);
+}
+
+.minibuffer-input::selection {
+    background-color: var(--bg-active);
+}
+
+/* Completions popup */
+.minibuffer-completions {
+    display: none;
+    position: fixed;
+    bottom: 60px;
+    left: 12px;
+    right: 12px;
+    background-color: var(--completion-bg);
+    border: 1px solid var(--bg-active);
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    font-size: 13px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+}
+
+.minibuffer-completions.active {
+    display: block;
+}
+
+.completion-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    color: var(--fg-main);
+}
+
+.completion-item:hover,
+.completion-item.selected {
+    background-color: var(--completion-selected);
+    color: var(--yellow);
+}
+
+.completion-description {
+    color: var(--fg-dim);
+    margin-left: 20px;
+    font-size: 12px;
+}
+
+/* Scrollbar styling (Emacs-like) */
+::-webkit-scrollbar {
+    width: 14px;
+    background-color: var(--bg-main);
+}
+
+::-webkit-scrollbar-track {
+    background-color: var(--bg-dim);
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: var(--bg-active);
+    border: 2px solid var(--bg-dim);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background-color: var(--fg-dim);
+}
+
+/* Firefox scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-active) var(--bg-dim);
+}
+
+/* Selection styling */
+::selection {
+    background-color: var(--bg-active);
+    color: var(--fg-main);
+}
+
+/* No visible links - all navigation through M-x */
+a {
+    color: var(--blue);
+    text-decoration: none;
+    cursor: default;
+}
+
+a:hover {
+    text-decoration: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .buffer-content {
+        padding: 20px 30px;
+        font-size: 14px;
+    }
+
+    .mode-line {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+
+    .minibuffer {
+        font-size: 12px;
+        padding: 6px 8px;
+    }
+
+    .minibuffer-completions {
+        font-size: 11px;
+    }
+}
+
+/* Cursor animation for text input */
+@keyframes blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+}
+
+/* Help text styling */
+.help-text {
+    color: var(--fg-dim);
+    font-style: italic;
+}
+
+/* Message area (for displaying temporary messages) */
+.message-area {
+    position: fixed;
+    bottom: 28px;
+    left: 0;
+    right: 0;
+    background-color: var(--minibuffer-bg);
+    color: var(--fg-main);
+    padding: 4px 12px;
+    font-size: 13px;
+    font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
+    display: none;
+    border-top: 1px solid var(--bg-active);
+    z-index: 999;
+}
+
+.message-area.active {
+    display: block;
+}

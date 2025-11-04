@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emacs Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main content area (the buffer) -->
+    <div class="window">
+        <div class="buffer active" id="home">
+            <div class="buffer-content">
+;; Welcome to my Emacs-style website
+;;
+;; Press M-x to access commands (Alt+x or Option+x on Mac)
+;; This buffer contains the home page
+
+* Home
+
+Welcome to my website, styled like an Emacs buffer!
+
+** Features
+
+- Pure black background with white text
+- iA Writer Mono S font (same as my Emacs)
+- Clean interface with no visible navigation
+- M-x command system for navigation
+- Emacs-inspired mode line
+
+** Navigation
+
+Press M-x (Alt+x or Option+x on Mac) to open the command palette.
+Then type a command:
+
+  - switch-buffer    : Choose a buffer to switch to
+  - list-buffers     : See all available buffers
+  - home             : Go to home buffer
+  - about            : Go to about buffer
+  - projects         : Go to projects buffer
+  - contact          : Go to contact buffer
+  - scratch          : Go to scratch buffer
+
+Just start typing and it will autocomplete!
+
+** Technical Details
+
+This website uses:
+- Pure HTML/CSS/JavaScript
+- No frameworks or dependencies
+- Emacs modus-vivendi color scheme
+- Your actual Emacs font: iA Writer Mono S
+- M-x style command palette
+
+Try it now: Press M-x and type "about"
+            </div>
+        </div>
+
+        <div class="buffer" id="about">
+            <div class="buffer-content">
+;; About buffer
+;;
+;; Information about this Emacs-style site
+;; Press M-x to navigate (Alt+x or Option+x)
+
+* About
+
+This is an experimental website designed to look and feel like
+an Emacs text editor.
+
+** Philosophy
+
+Emacs is not just a text editor, it's a way of life. This website
+brings the Emacs aesthetic to the web:
+
+- Minimalist black and white color scheme
+- Monospace font for maximum readability
+- M-x command-based navigation
+- Focus on content over decoration
+- No visible chrome or navigation bars
+
+** Design Principles
+
+1. Content First: No distractions, pure information
+2. Keyboard-Friendly: Everything accessible via M-x
+3. Emacs Aesthetics: Looks like home for Emacs users
+4. Fast Loading: No heavy JavaScript frameworks
+5. Clean Interface: No visible links or navigation
+
+** Tech Stack
+
+- HTML5 for structure
+- CSS3 for styling (Modus Vivendi theme)
+- Vanilla JavaScript for M-x command system
+- iA Writer Mono S font (same as your Emacs)
+
+** Commands
+
+Press M-x and try these commands:
+  - home          : Return to home page
+  - projects      : View projects
+  - contact       : Contact information
+  - scratch       : Scratch buffer
+            </div>
+        </div>
+
+        <div class="buffer" id="projects">
+            <div class="buffer-content">
+;; Projects buffer
+;;
+;; A list of projects in org-mode style
+;; Press M-x for navigation commands
+
+* Projects
+
+Here are some interesting projects:
+
+** Active Projects
+
+*** Emacs Configuration
+    :PROPERTIES:
+    :Status: In Progress
+    :Language: Emacs Lisp
+    :END:
+
+My personal Emacs configuration with:
+- Claude Code integration
+- GPTel for AI assistance
+- Custom note-taking system (ez-notes)
+- Hugo blog publishing
+- Hydration tracking
+- Multi-language TTS support
+
+*** Emacs-style Website
+    :PROPERTIES:
+    :Status: Just Started
+    :Language: HTML/CSS/JS
+    :END:
+
+This very website! An experiment in bringing the
+Emacs aesthetic to the web with:
+- M-x command system
+- Clean, minimal interface
+- Pure keyboard navigation
+- Emacs color scheme
+
+** Future Projects
+
+*** Org-mode Web Renderer
+    Build a web app that renders org-mode files
+    with full feature support
+
+*** Emacs Color Theme Generator
+    Create custom Emacs themes through a web interface
+
+*** Web-based Emacs Tutorial
+    Interactive Emacs learning platform
+
+** Completed Projects
+
+*** Hydration Tracker
+    Simple water intake tracking in Emacs
+
+*** YouTube Transcript Extractor
+    Download and extract transcripts using yt-dlp
+
+*** Hugo Blog Setup
+    Static site generation with ez-hugo
+
+---
+
+Press M-x and type "home" to return to the home page
+            </div>
+        </div>
+
+        <div class="buffer" id="contact">
+            <div class="buffer-content">
+;; Contact buffer
+;;
+;; How to reach me
+;; Press M-x for commands
+
+* Contact
+
+** Email
+
+You can reach me at: your-email@example.com
+
+** Social
+
+- GitHub: github.com/yourusername
+- Twitter: @yourusername
+- Website: https://yoursite.com
+- Mastodon: @you@mastodon.social
+
+** Office Hours
+
+Available for collaboration:
+- Monday-Friday: 9:00 - 17:00
+- Timezone: Your Timezone
+
+** Preferred Contact Method
+
+Email is best. I check it regularly and will respond
+within 24 hours.
+
+** Current Status
+
+*working* - Available for interesting projects
+
+** Interests
+
+I'm particularly interested in:
+- Emacs and text editing workflows
+- Static site generation
+- Minimalist web design
+- Lisp and functional programming
+- Open source collaboration
+
+---
+
+Press M-x to navigate to other pages
+            </div>
+        </div>
+
+        <div class="buffer" id="scratch">
+            <div class="buffer-content">
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with M-x find-file and enter text in its buffer.
+;; Press M-x for available commands
+
+(message "Hello from the scratch buffer!")
+
+;; You can't actually evaluate Lisp here (it's just a website)
+;; But you can pretend:
+
+(+ 2 2)  ; => 4
+(* 6 7)  ; => 42
+
+;; Or just use it for temporary notes:
+
+* Random Thoughts
+
+- Emacs is amazing
+- Web design should be more like Emacs
+- Monospace fonts are beautiful
+- Less is more
+- M-x is the best interface paradigm ever invented
+
+** TODO Items
+
+- [ ] Add more content to website
+- [ ] Implement syntax highlighting
+- [ ] Add search functionality (M-x search?)
+- [ ] Make it fully responsive
+- [ ] Add more Emacs commands
+
+** Scratch Space
+
+Write anything here...
+
+** Emacs Commands That Would Be Cool on the Web
+
+1. C-x C-s : Auto-save to localStorage
+2. C-x b   : Quick buffer switching
+3. C-s     : Incremental search
+4. C-x C-c : Actually quit the browser (just kidding!)
+
+** Why M-x Is Perfect
+
+M-x allows you to:
+- Access everything without memorizing shortcuts
+- Discover features through autocomplete
+- Keep the interface clean
+- Stay focused on content
+- Feel like a wizard
+
+---
+
+Press M-x and type a buffer name to navigate
+            </div>
+        </div>
+    </div>
+
+    <!-- Minibuffer (hidden by default) -->
+    <div class="minibuffer" id="minibuffer">
+        <span class="minibuffer-prompt">M-x </span>
+        <input type="text" class="minibuffer-input" id="minibuffer-input" autocomplete="off" spellcheck="false">
+        <div class="minibuffer-completions" id="minibuffer-completions"></div>
+    </div>
+
+    <!-- Mode line -->
+    <div class="mode-line">
+        <span class="mode-line-buffer" id="mode-line-buffer">*Home*</span>
+        <span class="mode-line-separator">--</span>
+        <span class="mode-line-mode">Fundamental</span>
+        <span class="mode-line-separator">--</span>
+        <span class="mode-line-position">
+            L<span id="line-number">1</span>
+        </span>
+        <span class="mode-line-spacer"></span>
+        <span class="mode-line-time" id="mode-line-time">00:00</span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
