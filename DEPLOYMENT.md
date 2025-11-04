@@ -35,7 +35,29 @@ database_id = "YOUR_DATABASE_ID_HERE"
 wrangler d1 execute emacs_website_db --file=./schema.sql
 ```
 
-## Step 4: Deploy Worker (Backend API)
+## Step 4: Configure Email Service (Mailgun)
+
+For user registration with email, you need to set up Mailgun:
+
+### Sign up for Mailgun
+1. Go to [Mailgun](https://www.mailgun.com/) and create account
+2. Verify your domain or use Mailgun's sandbox domain
+3. Get your API key from Dashboard → Settings → API Keys
+
+### Add Secrets to Wrangler
+```bash
+# Add Mailgun API key
+wrangler secret put MAILGUN_API_KEY
+# Paste your API key when prompted
+
+# Add Mailgun domain
+wrangler secret put MAILGUN_DOMAIN
+# Enter your domain (e.g., sandboxXXXX.mailgun.org or yourdomain.com)
+```
+
+**Note:** Free tier allows 100 emails/day for testing.
+
+## Step 5: Deploy Worker (Backend API)
 
 ```bash
 wrangler deploy
