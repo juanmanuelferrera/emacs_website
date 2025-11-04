@@ -250,7 +250,7 @@ https://github.com/jaganat/emacs-website
 
 Quick Keyboard Shortcuts:
 - M-x : Open command palette
-- M-m : Toggle sidebar menu
+- M-b : Toggle sidebar menu (buffers)
 - C-n : Create new page
 - C-e : Edit page
 - C-h : Show help
@@ -287,7 +287,7 @@ This is an automated message. Please do not reply to this email.`;
         <h3 style="color: #44bc44;">Quick Keyboard Shortcuts:</h3>
         <ul style="list-style: none; padding-left: 0;">
           <li><code style="background: #2a2a2a; padding: 2px 6px;">M-x</code> : Open command palette</li>
-          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-m</code> : Toggle sidebar menu</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-b</code> : Toggle sidebar menu (buffers)</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-n</code> : Create new page</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-e</code> : Edit page</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-h</code> : Show help</li>
@@ -382,7 +382,7 @@ https://github.com/jaganat/emacs-website
 
 Quick Keyboard Shortcuts:
 - M-x : Open command palette
-- M-m : Toggle sidebar menu
+- M-b : Toggle sidebar menu (buffers)
 - C-n : Create new page
 - C-e : Edit page
 - C-h : Show help
@@ -419,7 +419,7 @@ This is an automated message. Please do not reply to this email.`;
         <h3 style="color: #44bc44;">Quick Keyboard Shortcuts:</h3>
         <ul style="list-style: none; padding-left: 0;">
           <li><code style="background: #2a2a2a; padding: 2px 6px;">M-x</code> : Open command palette</li>
-          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-m</code> : Toggle sidebar menu</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-b</code> : Toggle sidebar menu (buffers)</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-n</code> : Create new page</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-e</code> : Edit page</li>
           <li><code style="background: #2a2a2a; padding: 2px 6px;">C-h</code> : Show help</li>

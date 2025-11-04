@@ -1,139 +1,136 @@
 # Emacs-Style Website
 
-A minimalist website designed to look and feel like the Emacs text editor, featuring M-x command navigation.
+A private, keyboard-driven web interface inspired by GNU Emacs.
 
-## Features
+## 🚀 Live Site
 
-- **Pure black background with white text** (Modus Vivendi theme)
-- **iA Writer Mono S font** (your actual Emacs font)
-- **Clean interface** with no visible navigation
-- **M-x command system** for all navigation (Alt+x or Option+x)
-- **Emacs-inspired mode line** showing buffer name and time
-- **Multiple buffers** that can be switched via commands
+https://main.emacs-website.pages.dev
 
-## Usage
+## ✨ Features
 
-Simply open `index.html` in a web browser.
+### 🔒 Private & Secure
+- Login required to view content
+- Email-based registration
+- Password protection
 
-### Navigation
+### ⌨️ Keyboard Shortcuts
 
-Press **M-x** (Alt+x on Windows/Linux, Option+x on Mac) to open the command palette.
+| Shortcut | Action |
+|----------|--------|
+| `M-x` (Alt+x / Cmd+x) | Open command palette |
+| `M-b` (Alt+b) | Show buffer list |
+| `C-n` | Create new page |
+| `C-e` | Edit current page |
+| `C-d` | Delete page (y/n confirmation) |
+| `C-s` | Search in page |
+| `C-k` | Clear *scratch* buffer |
+| `C-h` | Show help |
+| `C-x C-s` | Save page |
+| `M-w` | Copy page content |
+| `TAB` | Toggle section fold |
+| `ESC` | Cancel operation |
 
-Then type a command:
+### 📋 Minibuffer Interface
+- All interactions happen in the minibuffer (no popups)
+- Command autocomplete as you type
+- Yes/No confirmations (type y or n)
+- Text input for names and searches
 
-- `switch-buffer` or `list-buffers` - See all available buffers
-- `home` - Go to home buffer
-- `about` - Go to about buffer
-- `projects` - Go to projects buffer
-- `contact` - Go to contact buffer
-- `scratch` - Go to scratch buffer
-- `help` - Show all available commands
+### 🗂️ Page Management
+- **Built-in pages:** Home and *scratch*
+- **Custom pages:** Create your own with C-n
+- **Buffer list:** Press M-b to see all pages
+- **Auto-save:** Changes save to localStorage
+- **Cloud sync:** Syncs when logged in
 
-### Keyboard Shortcuts
+### 🎨 Org-Mode Folding
+- Use `* Heading` for sections
+- Press TAB on heading to fold/unfold
+- Press Shift+TAB to toggle all
 
-- **M-x** (Alt+x or Option+x) - Open command palette
-- **ESC** or **C-g** - Cancel/close minibuffer
-- **Enter** - Execute selected command
-- **↑/↓** - Navigate completions
-- **Tab** - Auto-complete to selected item
-- **C-x C-c** - Try to quit (Easter egg!)
+## 🔐 Getting Started
 
-## Files
+### Registration
+1. Visit the site (login required screen appears)
+2. Press `M-x` and type `register-user`
+3. Enter registration code: `Emacs108`
+4. Enter your email
+5. Choose a password (min 6 characters)
+6. You're logged in automatically!
 
-- `index.html` - Main HTML structure with buffer content
-- `style.css` - Emacs-inspired styling (Modus Vivendi colors)
-- `script.js` - M-x command system and navigation
-- `README.md` - This file
+### Login
+1. Press `M-x` and type `login`
+2. Enter your email
+3. Enter your password
+4. Welcome back!
 
-## Design Philosophy
+### Creating Content
+1. Press `C-n` to create a new page
+2. Type the page name in minibuffer
+3. Press `C-e` to edit
+4. Write your content
+5. Press `C-x C-s` to save
 
-This website embraces the Emacs philosophy:
+### Navigating
+- Press `M-b` to see buffer list
+- Click any buffer name to switch
+- Or use `M-x` → type buffer name
 
-1. **Keyboard-First**: All navigation via M-x commands
-2. **Content Over Chrome**: No visible UI, just content
-3. **Discoverability**: Commands are autocompleted and described
-4. **Minimalism**: Black and white, monospace, nothing else
+### Searching
+1. Press `C-s`
+2. Type search term in minibuffer
+3. Browser highlights matches
 
-## Customization
+### Deleting Pages
+1. Switch to the page you want to delete
+2. Press `C-d`
+3. Type `y` to confirm or `n` to cancel
 
-### Colors
+## 📖 Usage Tips
 
-Edit the CSS variables in `style.css`:
+### Command Palette (M-x)
+- Press `M-x` to see all available commands
+- Start typing to filter commands
+- Use arrow keys to navigate
+- Press Enter or Tab to select
 
-```css
-:root {
-    --bg-main: #000000;
-    --fg-main: #ffffff;
-    --cyan: #00d3d0;
-    /* etc. */
-}
+### Buffer List (M-b)
+- Shows all pages in the main area
+- Click buffer names to switch
+- Press `M-b` again to close
+- Stays visible until closed
+
+### Org-Mode Syntax
+```
+* Main Heading
+** Sub-heading
+*** Sub-sub-heading
+
+Regular text here...
+
+- Bullet point
+- Another point
 ```
 
-### Font
+### Scratch Buffer
+- Quick notes that don't save
+- Press `C-k` to clear it
+- Good for temporary work
 
-The font is set to "iA Writer Mono S" (your Emacs font). To change:
+## 🎯 Philosophy
 
-```css
-body {
-    font-family: "Your Font", "Fallback", monospace;
-}
-```
+This site follows the Emacs way:
+- **Keyboard-first:** Everything via shortcuts
+- **Minibuffer-driven:** No modal popups
+- **Content-focused:** Minimal UI
+- **Discoverable:** Commands show descriptions
 
-### Adding New Buffers/Pages
+## 📧 Support
 
-1. Add a new buffer div in `index.html`:
-```html
-<div class="buffer" id="newpage">
-    <div class="buffer-content">
-        Your content here...
-    </div>
-</div>
-```
-
-2. Add a command in `script.js`:
-```javascript
-'newpage': {
-    func: () => switchBuffer('newpage', '*New Page*'),
-    desc: 'Switch to New Page buffer'
-}
-```
-
-### Content Format
-
-Content is written in a mix of:
-- Org-mode style headers (`* Header`, `** Subheader`)
-- Lisp-style comments (`;; Comment`)
-- Plain text
-
-This gives it an authentic Emacs feel while remaining readable.
-
-## Browser Compatibility
-
-Works best in modern browsers:
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-
-## Technical Notes
-
-- Pure vanilla JavaScript, no frameworks
-- No external dependencies
-- Static website, no backend required
-- Lightweight (~10KB total)
-
-## Inspiration
-
-Inspired by:
-- GNU Emacs and its timeless design
-- The Modus Themes by Protesilaos Stavrou
-- The principle that good design is as little design as possible
-
-## License
-
-MIT License - Use freely!
+For issues: https://github.com/your-username/emacs-website/issues
 
 ---
 
 *M-x butterfly* 🦋
 
-Built with love for the Emacs community.
+Made for the Emacs community

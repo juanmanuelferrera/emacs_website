@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const window_el = document.querySelector('.window');
     const minibuffer = document.getElementById('minibuffer');
     const minibufferInput = document.getElementById('minibuffer-input');
+    const minibufferPrompt = document.querySelector('.minibuffer-prompt');
     const completionsDiv = document.getElementById('minibuffer-completions');
     const modeLineBuffer = document.getElementById('mode-line-buffer');
     const sidebar = document.getElementById('sidebar');
@@ -23,21 +24,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize or load buffers from localStorage
     let customBuffers = JSON.parse(localStorage.getItem('emacs-website-buffers')) || {};
+    console.log('Loaded custom buffers from localStorage:', Object.keys(customBuffers).length, 'buffers');
     let currentBufferId = 'home';
     let isEditMode = false;
     let isSidebarOpen = false;
+    let selectedSidebarIndex = 0;
+    let sidebarItems = [];
+
+    // Minibuffer state
+    let minibufferMode = 'command'; // 'command' or 'input'
+    let minibufferCallback = null; // Callback for text input mode
 
     // Default built-in buffers (read-only) with author info
-    const builtInBuffers = ['home', 'research', 'philosophy', 'projects', 'espanol', 'writings', 'contact', 'scratch'];
+    const builtInBuffers = ['home', 'scratch'];
 
     const bufferAuthors = {
         'home': 'Jagannath Mishra Dasa',
-        'research': 'Jagannath Mishra Dasa',
-        'philosophy': 'Jagannath Mishra Dasa',
-        'projects': 'Jagannath Mishra Dasa',
-        'espanol': 'Jagannath Mishra Dasa',
-        'writings': 'Jagannath Mishra Dasa',
-        'contact': 'Jagannath Mishra Dasa',
         'scratch': 'Public'
     };
 
@@ -45,10 +47,51 @@ document.addEventListener('DOMContentLoaded', () => {
     let viewedContent = JSON.parse(localStorage.getItem('emacs-website-viewed')) || {};
     let lastVisit = localStorage.getItem('emacs-website-last-visit') || new Date().toISOString();
 
+    // Track command usage history for M-x
+    let commandHistory = JSON.parse(localStorage.getItem('emacs-website-command-history')) || {};
+
+    // Clean up cache from deleted buffers
+    const deletedBuffers = ['research', 'philosophy', 'projects', 'espanol', 'writings', 'contact'];
+    let cacheUpdated = false;
+
+    // Remove deleted buffers from viewedContent
+    deletedBuffers.forEach(bufferId => {
+        if (viewedContent[bufferId]) {
+            delete viewedContent[bufferId];
+            cacheUpdated = true;
+        }
+    });
+
+    // Remove deleted buffers from commandHistory
+    deletedBuffers.forEach(bufferId => {
+        if (commandHistory[bufferId]) {
+            delete commandHistory[bufferId];
+            cacheUpdated = true;
+        }
+    });
+
+    // Save cleaned cache
+    if (cacheUpdated) {
+        localStorage.setItem('emacs-website-viewed', JSON.stringify(viewedContent));
+        localStorage.setItem('emacs-website-command-history', JSON.stringify(commandHistory));
+        console.log('Cleaned up cache for deleted buffers');
+    }
+
+    // Remove any DOM elements for deleted buffers
+    deletedBuffers.forEach(bufferId => {
+        const element = document.getElementById(bufferId);
+        if (element) {
+            element.remove();
+            console.log(`Removed DOM element for deleted buffer: ${bufferId}`);
+        }
+    });
+
     // Initialize custom buffers on page load
     function initializeCustomBuffers() {
+        console.log('Initializing custom buffers from localStorage:', Object.keys(customBuffers));
         Object.keys(customBuffers).forEach(bufferId => {
             const buffer = customBuffers[bufferId];
+            console.log(`Loading buffer ${bufferId}: ${buffer.name}, content length: ${buffer.content?.length || 0}`);
             if (!document.getElementById(bufferId)) {
                 createBufferElement(bufferId, buffer.name, buffer.content);
             }
@@ -56,72 +99,185 @@ document.addEventListener('DOMContentLoaded', () => {
         updateSidebar();
     }
 
-    // Toggle sidebar
+    // Show buffer list in main buffer area
+    function showBufferListInBuffer() {
+        closeMinibuffer();
+
+        // Create buffers list buffer if it doesn't exist
+        let buffersListBuffer = document.getElementById('buffers');
+        if (!buffersListBuffer) {
+            buffersListBuffer = createBufferElement('buffers', 'Buffers', '');
+        }
+
+        // Build the buffer list content
+        let content = `;; Buffer List\n;; Press Enter on a buffer name to switch to it\n\n`;
+
+        // Built-in buffers
+        content += `* Built-in Buffers\n\n`;
+        builtInBuffers.forEach(id => {
+            const name = id === 'scratch' ? '*scratch*' : id.charAt(0).toUpperCase() + id.slice(1);
+            const author = bufferAuthors[id] || 'Unknown';
+            content += `  [[${id}][${name}]] -- ${author}\n`;
+        });
+
+        // Custom buffers
+        if (Object.keys(customBuffers).length > 0) {
+            content += `\n* Custom Buffers\n\n`;
+            Object.keys(customBuffers).forEach(id => {
+                const buffer = customBuffers[id];
+                const author = buffer.author || 'Anonymous';
+                const created = new Date(buffer.created).toLocaleDateString();
+                content += `  [[${id}][${buffer.name}]] -- ${author} (created: ${created})\n`;
+            });
+        } else {
+            content += `\n* Custom Buffers\n\n  (no custom buffers yet - press C-n to create one)\n`;
+        }
+
+        content += `\n\n;; Press M-b or ESC to close this buffer\n`;
+
+        // Update content
+        const contentDiv = buffersListBuffer.querySelector('.buffer-content');
+        contentDiv.textContent = content;
+
+        // Make buffer links clickable
+        contentDiv.innerHTML = contentDiv.innerHTML.replace(
+            /\[\[([^\]]+)\]\[([^\]]+)\]\]/g,
+            '<a href="#" class="buffer-link" data-buffer="$1">$2</a>'
+        );
+
+        // Add click handlers to links
+        contentDiv.querySelectorAll('.buffer-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const bufferId = link.dataset.buffer;
+                const displayName = link.textContent;
+                switchBuffer(bufferId, `*${displayName}*`);
+            });
+        });
+
+        // Switch to buffers list
+        switchBuffer('buffers', '*Buffers*');
+        showMessage('Buffer list (press M-b or ESC to close)');
+    }
+
+    // Toggle sidebar - shows buffer list in sidebar overlay
     function toggleSidebar() {
         isSidebarOpen = !isSidebarOpen;
-        sidebar.classList.toggle('active');
-        sidebarOverlay.classList.toggle('active');
-        updateSidebarHighlight();
-        showMessage(isSidebarOpen ? 'Sidebar opened' : 'Sidebar closed');
+
+        if (isSidebarOpen) {
+            // Reset selection to first item
+            selectedSidebarIndex = 0;
+
+            // Update sidebar content before showing
+            updateSidebar();
+            sidebar.classList.add('active');
+            sidebarOverlay.classList.add('active');
+            showMessage('Buffer list (arrow keys to navigate, Enter to select, ESC to close)');
+        } else {
+            sidebar.classList.remove('active');
+            sidebarOverlay.classList.remove('active');
+            showMessage('Buffer list closed');
+        }
+    }
+
+    // Update sidebar with current buffers
+    function updateSidebar() {
+        const customBuffersSection = document.getElementById('custom-buffers-section');
+        const customBuffersList = document.getElementById('custom-buffers-list');
+
+        // Build sidebarItems array
+        sidebarItems = [];
+        builtInBuffers.forEach(id => {
+            sidebarItems.push({
+                id: id,
+                display: id === 'scratch' ? '*scratch*' : '*' + id.charAt(0).toUpperCase() + id.slice(1) + '*',
+                name: id === 'scratch' ? '*scratch*' : id.charAt(0).toUpperCase() + id.slice(1)
+            });
+        });
+        Object.keys(customBuffers).forEach(bufferId => {
+            const buffer = customBuffers[bufferId];
+            sidebarItems.push({
+                id: bufferId,
+                display: '*' + buffer.name + '*',
+                name: buffer.name
+            });
+        });
+
+        // Update built-in buffers section
+        const builtInSection = document.querySelector('.sidebar-section');
+        if (builtInSection) {
+            builtInSection.innerHTML = `
+                <div class="sidebar-section-title">Buffers</div>
+                ${builtInBuffers.map((id, index) => {
+                    const isCurrentBuffer = currentBufferId === id;
+                    const isSelected = index === selectedSidebarIndex;
+                    return `
+                    <div class="sidebar-item ${isCurrentBuffer ? 'current' : ''} ${isSelected ? 'selected' : ''}"
+                         data-buffer="${id}"
+                         data-display="${id === 'scratch' ? '*scratch*' : '*' + id.charAt(0).toUpperCase() + id.slice(1) + '*'}"
+                         data-index="${index}">
+                        ${id === 'scratch' ? '*scratch*' : id.charAt(0).toUpperCase() + id.slice(1)}
+                    </div>
+                `;
+                }).join('')}
+            `;
+        }
+
+        // Update custom buffers
+        if (Object.keys(customBuffers).length > 0) {
+            customBuffersSection.style.display = 'block';
+            const customStartIndex = builtInBuffers.length;
+            customBuffersList.innerHTML = Object.keys(customBuffers).map((bufferId, index) => {
+                const buffer = customBuffers[bufferId];
+                const globalIndex = customStartIndex + index;
+                const isCurrentBuffer = currentBufferId === bufferId;
+                const isSelected = globalIndex === selectedSidebarIndex;
+                return `
+                    <div class="sidebar-item ${isCurrentBuffer ? 'current' : ''} ${isSelected ? 'selected' : ''}"
+                         data-buffer="${bufferId}"
+                         data-display="*${buffer.name}*"
+                         data-index="${globalIndex}">
+                        ${buffer.name}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            customBuffersSection.style.display = 'none';
+        }
+
+        // Add click handlers to all sidebar items
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const bufferId = item.dataset.buffer;
+                const displayName = item.dataset.display;
+                switchBuffer(bufferId, displayName);
+                toggleSidebar(); // Close sidebar after selection
+            });
+        });
+
+        // Scroll selected item into view
+        const selectedItem = document.querySelector('.sidebar-item.selected');
+        if (selectedItem) {
+            selectedItem.scrollIntoView({ block: 'nearest' });
+        }
     }
 
     // Update sidebar to show current buffer highlighted
     function updateSidebarHighlight() {
         document.querySelectorAll('.sidebar-item').forEach(item => {
-            item.classList.remove('current');
             if (item.dataset.buffer === currentBufferId) {
                 item.classList.add('current');
+            } else {
+                item.classList.remove('current');
             }
         });
     }
 
-    // Update sidebar with custom buffers
-    function updateSidebar() {
-        const customBuffersSection = document.getElementById('custom-buffers-section');
-        const customBuffersList = document.getElementById('custom-buffers-list');
-
-        if (Object.keys(customBuffers).length > 0) {
-            customBuffersSection.style.display = 'block';
-            customBuffersList.innerHTML = Object.keys(customBuffers).map(bufferId => {
-                const buffer = customBuffers[bufferId];
-                const author = buffer.author || 'Anonymous';
-                return `
-                    <div class="sidebar-item" data-buffer="${bufferId}" data-display="*${buffer.name}*">
-                        ${buffer.name}
-                        <span class="sidebar-item-author">${author}</span>
-                    </div>
-                `;
-            }).join('');
-
-            // Add click handlers to new custom buffer items
-            customBuffersList.querySelectorAll('.sidebar-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    switchBuffer(item.dataset.buffer, item.dataset.display);
-                    if (isSidebarOpen) {
-                        toggleSidebar();
-                    }
-                });
-            });
-        } else {
-            customBuffersSection.style.display = 'none';
-        }
-    }
-
-    // Close sidebar when clicking overlay
+    // Sidebar overlay click handler - close sidebar when clicking outside
     sidebarOverlay.addEventListener('click', () => {
         if (isSidebarOpen) {
             toggleSidebar();
         }
-    });
-
-    // Add click handlers to built-in sidebar items
-    document.querySelectorAll('.sidebar-item[data-buffer]').forEach(item => {
-        item.addEventListener('click', () => {
-            switchBuffer(item.dataset.buffer, item.dataset.display);
-            if (isSidebarOpen) {
-                toggleSidebar();
-            }
-        });
     });
 
     // Available commands
@@ -136,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         'toggle-sidebar': {
             func: () => toggleSidebar(),
-            desc: 'Toggle sidebar menu (M-m)'
+            desc: 'Show/hide buffer list (M-b)'
         },
         'recent-content': {
             func: () => showRecentContent(),
@@ -182,30 +338,6 @@ document.addEventListener('DOMContentLoaded', () => {
             func: () => switchBuffer('home', '*Home*'),
             desc: 'Welcome and introduction'
         },
-        'research': {
-            func: () => switchBuffer('research', '*Research*'),
-            desc: 'Bhagavad Gita textual analysis'
-        },
-        'philosophy': {
-            func: () => switchBuffer('philosophy', '*Philosophy*'),
-            desc: 'Philosophical questions and comparative analysis'
-        },
-        'projects': {
-            func: () => switchBuffer('projects', '*Projects*'),
-            desc: 'Software projects and tools'
-        },
-        'espanol': {
-            func: () => switchBuffer('espanol', '*Español*'),
-            desc: 'Contenido en idioma español'
-        },
-        'writings': {
-            func: () => switchBuffer('writings', '*Writings*'),
-            desc: 'Articles, essays, and publications'
-        },
-        'contact': {
-            func: () => switchBuffer('contact', '*Contact*'),
-            desc: 'Contact information'
-        },
         'scratch': {
             func: () => switchBuffer('scratch', '*scratch*'),
             desc: 'Scratch buffer for notes'
@@ -230,6 +362,10 @@ document.addEventListener('DOMContentLoaded', () => {
             func: () => loginUser(),
             desc: 'Login with username and password'
         },
+        'logout': {
+            func: () => logoutUser(),
+            desc: 'Logout and return to authentication screen'
+        },
         'filter-by-author': {
             func: () => filterByAuthor(),
             desc: 'View content from a specific author'
@@ -237,10 +373,6 @@ document.addEventListener('DOMContentLoaded', () => {
         'toggle-folding': {
             func: () => toggleAllFolds(),
             desc: 'Toggle all folds (Shift+TAB)'
-        },
-        'enable-org-mode': {
-            func: () => enableOrgMode(),
-            desc: 'Enable org-mode folding for current buffer'
         }
     };
 
@@ -260,37 +392,76 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Create new buffer
-    function createNewBuffer() {
-        closeMinibuffer();
-
-        // Ask for buffer name
-        const name = prompt('Buffer name:', 'New Buffer');
-        if (!name) return;
-
-        const bufferId = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-
-        // Check if buffer already exists
-        if (document.getElementById(bufferId)) {
-            showMessage('Buffer already exists!');
+    // Prompt for input in minibuffer
+    function promptInMinibuffer(prompt, defaultValue, callback) {
+        if (isEditMode) {
+            showMessage('Exit edit mode first (ESC or C-x C-s)');
             return;
         }
 
-        // Create buffer object
-        customBuffers[bufferId] = {
-            name: name,
-            content: `;; New buffer: ${name}\n;; Press C-e to edit\n\n* ${name}\n\nYour content here...\n`,
-            created: new Date().toISOString()
-        };
+        minibufferMode = 'input';
+        minibufferCallback = callback;
+        minibuffer.classList.add('active');
+        minibufferPrompt.textContent = prompt;
+        minibufferInput.value = defaultValue || '';
+        minibufferInput.focus();
+        completionsDiv.classList.remove('active');
+    }
 
-        // Save to localStorage
-        localStorage.setItem('emacs-website-buffers', JSON.stringify(customBuffers));
+    // Confirm yes/no in minibuffer
+    function confirmInMinibuffer(prompt, callback) {
+        if (isEditMode) {
+            showMessage('Exit edit mode first (ESC or C-x C-s)');
+            return;
+        }
 
-        // Create buffer element
-        createBufferElement(bufferId, name, customBuffers[bufferId].content);
+        showMessage(`${prompt} (y/n)`);
+        promptInMinibuffer(`${prompt} (y/n): `, '', (answer) => {
+            const normalized = answer.toLowerCase().trim();
+            if (normalized === 'y' || normalized === 'yes') {
+                callback(true);
+            } else if (normalized === 'n' || normalized === 'no') {
+                callback(false);
+            } else {
+                showMessage('Please answer y or n');
+                setTimeout(() => confirmInMinibuffer(prompt, callback), 500);
+            }
+        });
+    }
 
-        // Switch to new buffer
-        switchBuffer(bufferId, `*${name}*`);
-        showMessage(`Created buffer: *${name}*`);
+    function createNewBuffer() {
+        promptInMinibuffer('Buffer name: ', '', (name) => {
+            if (!name || name.trim() === '') {
+                showMessage('Buffer name cannot be empty');
+                return;
+            }
+
+            name = name.trim();
+            const bufferId = name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+            // Check if buffer already exists
+            if (document.getElementById(bufferId)) {
+                showMessage('Buffer already exists!');
+                return;
+            }
+
+            // Create buffer object
+            customBuffers[bufferId] = {
+                name: name,
+                content: `;; New buffer: ${name}\n;; Press C-e to edit\n\n* ${name}\n\nYour content here...\n`,
+                created: new Date().toISOString()
+            };
+
+            // Save to localStorage
+            localStorage.setItem('emacs-website-buffers', JSON.stringify(customBuffers));
+
+            // Create buffer element
+            createBufferElement(bufferId, name, customBuffers[bufferId].content);
+
+            // Switch to new buffer
+            switchBuffer(bufferId, `*${name}*`);
+            showMessage(`Created buffer: *${name}*`);
+        });
     }
 
     // Enter edit mode
@@ -322,8 +493,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (save && !builtInBuffers.includes(currentBufferId)) {
             // Save content locally
-            customBuffers[currentBufferId].content = content.innerHTML;
+            const newContent = content.innerHTML;
+            console.log(`Saving buffer ${currentBufferId}, content length: ${newContent.length}`);
+            customBuffers[currentBufferId].content = newContent;
+            customBuffers[currentBufferId].updated = new Date().toISOString();
             localStorage.setItem('emacs-website-buffers', JSON.stringify(customBuffers));
+            console.log('Saved to localStorage:', Object.keys(customBuffers));
 
             // Save to API if logged in
             const token = localStorage.getItem('emacs-website-token');
@@ -414,21 +589,28 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const bufferName = customBuffers[currentBufferId].name;
-        if (!confirm(`Delete buffer *${bufferName}*?`)) {
-            return;
-        }
+        const bufferIdToDelete = currentBufferId;
 
-        // Remove from DOM
-        const bufferElement = document.getElementById(currentBufferId);
-        bufferElement.remove();
+        confirmInMinibuffer(`Delete buffer *${bufferName}*?`, (confirmed) => {
+            if (!confirmed) {
+                showMessage('Delete cancelled');
+                return;
+            }
 
-        // Remove from storage
-        delete customBuffers[currentBufferId];
-        localStorage.setItem('emacs-website-buffers', JSON.stringify(customBuffers));
+            // Remove from DOM
+            const bufferElement = document.getElementById(bufferIdToDelete);
+            if (bufferElement) {
+                bufferElement.remove();
+            }
 
-        // Switch to home
-        switchBuffer('home', '*Home*');
-        showMessage(`Deleted buffer: *${bufferName}*`);
+            // Remove from storage
+            delete customBuffers[bufferIdToDelete];
+            localStorage.setItem('emacs-website-buffers', JSON.stringify(customBuffers));
+
+            // Switch to home
+            switchBuffer('home', '*Home*');
+            showMessage(`Deleted buffer: *${bufferName}*`);
+        });
     }
 
     // Buffer switching function
@@ -455,6 +637,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update sidebar highlight
             updateSidebarHighlight();
 
+            // Apply org-mode folding automatically
+            applyOrgMode(bufferName);
+
             // Show buffer author in message
             const author = bufferAuthors[bufferName] || customBuffers[bufferName]?.author || 'Unknown';
             showMessage(`${displayName} -- ${author}`);
@@ -469,16 +654,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Show buffer list in minibuffer
     function showBufferList() {
         // Built-in buffers
-        const bufferList = [
-            { name: 'home', display: '*Home*' },
-            { name: 'research', display: '*Research*' },
-            { name: 'philosophy', display: '*Philosophy*' },
-            { name: 'projects', display: '*Projects*' },
-            { name: 'espanol', display: '*Español*' },
-            { name: 'writings', display: '*Writings*' },
-            { name: 'contact', display: '*Contact*' },
-            { name: 'scratch', display: '*scratch*' }
-        ];
+        const bufferList = builtInBuffers.map(id => ({
+            name: id,
+            display: id === 'scratch' ? '*scratch*' : `*${id.charAt(0).toUpperCase() + id.slice(1)}*`
+        }));
 
         // Add custom buffers
         Object.keys(customBuffers).forEach(bufferId => {
@@ -504,7 +683,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyboardShortcuts = `
 Keyboard Shortcuts:
   M-x         : Open command palette
-  M-m         : Toggle sidebar menu
+  M-b         : Toggle sidebar menu (buffers)
   C-n         : Create new buffer
   C-e         : Edit current buffer
   C-d         : Delete current buffer
@@ -521,38 +700,65 @@ Keyboard Shortcuts:
   ESC         : Cancel operation
   C-g         : Cancel operation
 `;
-        alert(`Available Commands:\n\n${helpText}\n${keyboardShortcuts}`);
+
         closeMinibuffer();
+
+        // Create or update help buffer
+        const helpBufferId = 'help';
+        let helpBuffer = document.getElementById(helpBufferId);
+
+        if (!helpBuffer) {
+            helpBuffer = createBufferElement(helpBufferId, 'Help', '');
+        }
+
+        const content = helpBuffer.querySelector('.buffer-content');
+        content.textContent = `;; Emacs Website Help\n;; Press ESC or M-x to exit\n\nAvailable Commands:\n\n${helpText}\n${keyboardShortcuts}`;
+
+        switchBuffer(helpBufferId, '*Help*');
+        showMessage('Showing help. Press ESC to return.');
     }
 
     // Search in current buffer
     function searchInBuffer() {
-        const searchTerm = prompt('Search for:');
-        if (!searchTerm) return;
+        promptInMinibuffer('Search for: ', '', (searchTerm) => {
+            if (!searchTerm || searchTerm.trim() === '') {
+                showMessage('Search cancelled');
+                return;
+            }
 
-        const currentBuffer = document.getElementById(currentBufferId);
-        const content = currentBuffer.querySelector('.buffer-content');
-        const text = content.textContent;
+            searchTerm = searchTerm.trim();
+            const currentBuffer = document.getElementById(currentBufferId);
+            const content = currentBuffer.querySelector('.buffer-content');
+            const text = content.textContent;
 
-        if (text.toLowerCase().includes(searchTerm.toLowerCase())) {
-            // Use browser's built-in find
-            window.find(searchTerm, false, false, true);
-            showMessage(`Found: ${searchTerm}`);
-        } else {
-            showMessage(`Not found: ${searchTerm}`);
-        }
+            if (text.toLowerCase().includes(searchTerm.toLowerCase())) {
+                // Use browser's built-in find
+                window.find(searchTerm, false, false, true);
+                showMessage(`Found: ${searchTerm}`);
+            } else {
+                showMessage(`Not found: ${searchTerm}`);
+            }
+        });
     }
 
     // Clear scratch buffer
     function clearScratchBuffer() {
-        if (currentBufferId !== 'scratch') return;
+        if (currentBufferId !== 'scratch') {
+            showMessage('C-k only works in *scratch* buffer');
+            return;
+        }
 
-        if (confirm('Clear *scratch* buffer?')) {
+        confirmInMinibuffer('Clear *scratch* buffer?', (confirmed) => {
+            if (!confirmed) {
+                showMessage('Clear cancelled');
+                return;
+            }
+
             const scratchBuffer = document.getElementById('scratch');
             const content = scratchBuffer.querySelector('.buffer-content');
             content.textContent = ';; This buffer is for notes that are not saved.\n;; Press M-x for available commands\n\n';
             showMessage('*scratch* buffer cleared');
-        }
+        });
     }
 
     // Copy buffer content to clipboard
@@ -664,12 +870,14 @@ ${text}
 
     // Show buffer info (author, created date, etc.)
     function showBufferInfo() {
+        closeMinibuffer();
+
         const author = bufferAuthors[currentBufferId] || customBuffers[currentBufferId]?.author || 'Unknown';
         const bufferName = modeLineBuffer.textContent;
         const created = customBuffers[currentBufferId]?.created || 'Built-in';
         const modified = customBuffers[currentBufferId]?.modified || 'N/A';
 
-        let info = `Buffer: ${bufferName}\nAuthor: ${author}`;
+        let info = `;; Buffer Information\n;; Press ESC to return\n\nBuffer: ${bufferName}\nAuthor: ${author}`;
         if (created !== 'Built-in') {
             info += `\nCreated: ${new Date(created).toLocaleString()}`;
             if (modified !== 'N/A') {
@@ -677,8 +885,8 @@ ${text}
             }
         }
 
-        alert(info);
-        closeMinibuffer();
+        // Show info in message area
+        showMessage(info);
     }
 
     // Show recent/new content
@@ -709,9 +917,14 @@ ${text}
             return;
         }
 
-        // Show list of new content
-        const list = newContent.map(b => `  - ${b.name} ${b.isNew ? '(NEW)' : '(unread)'}`).join('\n');
-        alert(`Recent/New Content:\n\n${list}\n\nUse M-x to switch to these buffers.`);
+        // Show recent content in minibuffer
+        showMessage(`Found ${newContent.length} new/unread buffer${newContent.length > 1 ? 's' : ''}`);
+        openMinibuffer();
+        updateCompletions(newContent.map(b => ({
+            name: b.id,
+            desc: `${b.name} ${b.isNew ? '(NEW)' : '(unread)'}`,
+            func: () => switchBuffer(b.id, `*${b.name}*`)
+        })));
     }
 
     // Mark buffer as viewed
@@ -723,6 +936,77 @@ ${text}
 
     // Register new user (Emacs-style)
     async function registerUser() {
+        showMessage('Registration: Enter shared password (ESC to cancel)');
+
+        // Step 1: Ask for registration password
+        promptInMinibuffer('Registration password: ', '', async (sharedPassword) => {
+            if (!sharedPassword || sharedPassword.trim() === '') {
+                showMessage('Registration cancelled');
+                return;
+            }
+
+            if (sharedPassword.trim() !== 'Emacs108') {
+                showMessage('✗ Incorrect registration password');
+                return;
+            }
+
+            // Step 2: Ask for email
+            showMessage('Password verified! Enter your email...');
+            promptInMinibuffer('Email (username): ', '', async (email) => {
+                if (!email || email.trim() === '' || !email.includes('@')) {
+                    showMessage('✗ Valid email address is required');
+                    return;
+                }
+
+                email = email.trim();
+
+                // Step 3: Ask for password (min 6 chars)
+                showMessage('Choose your password (min 6 characters)...');
+                promptInMinibuffer('Password: ', '', async (password) => {
+                    if (!password || password.length < 6) {
+                        showMessage('✗ Password must be at least 6 characters');
+                        return;
+                    }
+
+                    showMessage('Registering...');
+
+                    try {
+                        const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
+
+                        const response = await fetch(`${API_URL}/api/auth/register`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                username: email,
+                                email: email,
+                                password: password
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (response.ok) {
+                            // Store token and username for immediate login
+                            localStorage.setItem('emacs-website-token', data.token);
+                            localStorage.setItem('emacs-website-username', data.username);
+                            showMessage(`✓ Success! Logged in as ${email}`);
+                            // Reload to show content
+                            setTimeout(() => {
+                                window.location.reload();
+                            }, 1000);
+                        } else {
+                            showMessage(`✗ ${data.error || 'Registration failed'}`);
+                        }
+                    } catch (error) {
+                        showMessage('✗ Network error. Please try again.');
+                    }
+                });
+            });
+        });
+    }
+
+    // Old dialog-based registerUser (now replaced with minibuffer version above)
+    async function registerUserOld() {
         closeMinibuffer();
 
         let passwordVerified = false;
@@ -1009,42 +1293,88 @@ ${text}
 
     // Login user
     async function loginUser() {
-        closeMinibuffer();
+        showMessage('Login: Enter your email (ESC to cancel)');
 
-        const username = prompt('Email (Username):');
-        if (!username) return;
-
-        const password = prompt('Password:');
-        if (!password) return;
-
-        try {
-            // TODO: Replace with your actual API URL after deployment
-            const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
-
-            const response = await fetch(`${API_URL}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                localStorage.setItem('emacs-website-token', data.token);
-                localStorage.setItem('emacs-website-username', data.username);
-                showMessage(`Logged in as ${data.username}`);
-            } else {
-                alert(`Login failed: ${data.error}`);
+        // Step 1: Ask for username (email)
+        promptInMinibuffer('Email (username): ', '', (username) => {
+            if (!username || username.trim() === '') {
+                showMessage('Login cancelled');
+                return;
             }
-        } catch (error) {
-            alert('Login failed: Network error. Check API_URL in script.js');
-        }
+
+            username = username.trim();
+
+            // Step 2: Ask for password
+            showMessage('Enter your password...');
+            promptInMinibuffer('Password: ', '', async (password) => {
+                if (!password || password.trim() === '') {
+                    showMessage('Login cancelled');
+                    return;
+                }
+
+                showMessage('Logging in...');
+
+                try {
+                    const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
+
+                    const response = await fetch(`${API_URL}/api/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username, password: password.trim() })
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        localStorage.setItem('emacs-website-token', data.token);
+                        localStorage.setItem('emacs-website-username', data.username);
+                        showMessage(`✓ Logged in as ${data.username}`);
+                        // Reload to show content
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    } else {
+                        showMessage(`✗ Login failed: ${data.error}`);
+                    }
+                } catch (error) {
+                    showMessage('✗ Login failed: Network error');
+                }
+            });
+        });
     }
 
-    // Enable org-mode folding for current buffer
-    function enableOrgMode() {
-        const currentBuffer = document.getElementById(currentBufferId);
-        const content = currentBuffer.querySelector('.buffer-content');
+    // Logout user
+    function logoutUser() {
+        closeMinibuffer();
+
+        const username = localStorage.getItem('emacs-website-username');
+        if (!username) {
+            showMessage('Not logged in');
+            return;
+        }
+
+        // Clear authentication
+        localStorage.removeItem('emacs-website-token');
+        localStorage.removeItem('emacs-website-username');
+
+        showMessage(`Logged out ${username}`);
+
+        // Reload to show auth screen
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
+
+    // Apply org-mode folding automatically to current buffer
+    function applyOrgMode(bufferId) {
+        const targetBuffer = document.getElementById(bufferId || currentBufferId);
+        if (!targetBuffer) return;
+
+        const content = targetBuffer.querySelector('.buffer-content');
+        if (!content) return;
+
+        // Check if already processed (has org-heading elements)
+        if (content.querySelector('.org-heading')) return;
 
         // Parse and wrap org-mode headings
         const text = content.innerHTML;
@@ -1091,8 +1421,6 @@ ${text}
         content.querySelectorAll('.org-content').forEach(content => {
             content.style.maxHeight = content.scrollHeight + 'px';
         });
-
-        showMessage('Org-mode folding enabled. Press TAB on headings to toggle.');
     }
 
     // Toggle a specific fold
@@ -1110,7 +1438,7 @@ ${text}
         const headings = currentBuffer.querySelectorAll('.org-heading');
 
         if (headings.length === 0) {
-            showMessage('No org-mode headings found. Use M-x enable-org-mode first.');
+            showMessage('No org-mode headings found in current buffer.');
             return;
         }
 
@@ -1137,10 +1465,13 @@ ${text}
 
     // Filter content by author
     function filterByAuthor() {
-        closeMinibuffer();
+        promptInMinibuffer('Author name: ', '', (author) => {
+            if (!author || author.trim() === '') {
+                showMessage('Filter cancelled');
+                return;
+            }
 
-        const author = prompt('Author name (e.g., jaganat or "Jagannath Mishra Dasa"):');
-        if (!author) return;
+            author = author.trim();
 
         // Find all buffers by this author
         const matchingBuffers = [];
@@ -1181,20 +1512,22 @@ ${text}
             return;
         }
 
-        // Show results in alert (Emacs-style)
-        const resultText = matchingBuffers.map(b =>
-            `  ${b.name.padEnd(20)} -- ${b.author}`
-        ).join('\n');
+            // Show results
+            if (matchingBuffers.length === 0) {
+                showMessage(`No buffers found by author: ${author}`);
+                return;
+            }
 
-        alert(`Content by "${author}" (${matchingBuffers.length} buffer${matchingBuffers.length > 1 ? 's' : ''}):\n\n${resultText}\n\nPress M-x to switch to any of these buffers.`);
+            showMessage(`Found ${matchingBuffers.length} buffer${matchingBuffers.length > 1 ? 's' : ''} by "${author}"`);
 
-        // Open minibuffer with filtered list
-        openMinibuffer();
-        updateCompletions(matchingBuffers.map(b => ({
-            name: b.id,
-            desc: `${b.name} by ${b.author}`,
-            func: () => switchBuffer(b.id, b.display)
-        })));
+            // Open minibuffer with filtered list
+            openMinibuffer();
+            updateCompletions(matchingBuffers.map(b => ({
+                name: b.id,
+                desc: `${b.name} by ${b.author}`,
+                func: () => switchBuffer(b.id, b.display)
+            })));
+        });
     }
 
     // Open minibuffer with M-x
@@ -1208,11 +1541,38 @@ ${text}
         minibuffer.classList.add('active');
         minibufferInput.value = '';
         minibufferInput.focus();
-        updateCompletions(Object.keys(commands).map(cmd => ({
+
+        // Get all commands and sort by usage history
+        const commandList = Object.keys(commands).map(cmd => ({
             name: cmd,
             desc: commands[cmd].desc,
-            func: commands[cmd].func
-        })));
+            func: commands[cmd].func,
+            usage: commandHistory[cmd] || { count: 0, lastUsed: null }
+        }));
+
+        // Sort commands:
+        // 1. Recently used (within last 5 minutes) at top
+        // 2. Then by total usage count
+        // 3. Then alphabetically
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        commandList.sort((a, b) => {
+            const aRecent = a.usage.lastUsed && new Date(a.usage.lastUsed).getTime() > fiveMinutesAgo;
+            const bRecent = b.usage.lastUsed && new Date(b.usage.lastUsed).getTime() > fiveMinutesAgo;
+
+            // Recently used commands first
+            if (aRecent && !bRecent) return -1;
+            if (!aRecent && bRecent) return 1;
+
+            // If both recent or both not recent, sort by count
+            if (a.usage.count !== b.usage.count) {
+                return b.usage.count - a.usage.count;
+            }
+
+            // If same count, sort alphabetically
+            return a.name.localeCompare(b.name);
+        });
+
+        updateCompletions(commandList);
     }
 
     // Close minibuffer
@@ -1222,6 +1582,9 @@ ${text}
         minibufferInput.value = '';
         currentCompletions = [];
         selectedCompletionIndex = 0;
+        minibufferMode = 'command';
+        minibufferCallback = null;
+        minibufferPrompt.textContent = 'M-x ';
     }
 
     // Update completions based on input
@@ -1258,6 +1621,22 @@ ${text}
     // Execute selected completion
     function executeCompletion(index) {
         if (currentCompletions[index]) {
+            const commandName = currentCompletions[index].name;
+
+            // Track command usage
+            if (!commandHistory[commandName]) {
+                commandHistory[commandName] = {
+                    count: 0,
+                    lastUsed: null
+                };
+            }
+            commandHistory[commandName].count++;
+            commandHistory[commandName].lastUsed = new Date().toISOString();
+
+            // Save to localStorage
+            localStorage.setItem('emacs-website-command-history', JSON.stringify(commandHistory));
+
+            // Execute the command
             currentCompletions[index].func();
         }
     }
@@ -1312,8 +1691,8 @@ ${text}
             return;
         }
 
-        // M-m (Alt+m) - Toggle sidebar
-        if (e.altKey && e.key === 'm' && !isEditMode) {
+        // M-b (Alt+b or Command+b on Mac) - Toggle sidebar (buffers)
+        if ((e.altKey || e.metaKey) && e.key === 'b' && !isEditMode) {
             e.preventDefault();
             toggleSidebar();
             return;
@@ -1455,31 +1834,89 @@ ${text}
             return;
         }
 
-        // ESC or C-g - Close minibuffer or exit edit mode
-        if (minibuffer.classList.contains('active')) {
-            if (e.key === 'Escape' || (e.ctrlKey && e.key === 'g')) {
+        // ESC or C-g - Close sidebar, minibuffer, or exit edit mode
+        if (e.key === 'Escape' || (e.ctrlKey && e.key === 'g')) {
+            // First priority: close sidebar if open
+            if (isSidebarOpen) {
+                e.preventDefault();
+                toggleSidebar();
+                return;
+            }
+
+            // Second priority: close minibuffer if open
+            if (minibuffer.classList.contains('active')) {
                 e.preventDefault();
                 closeMinibuffer();
                 return;
             }
+        }
 
-            // Enter - Execute selected completion
-            if (e.key === 'Enter') {
+        // Sidebar keyboard navigation
+        if (isSidebarOpen) {
+            // Arrow Down - Navigate to next buffer
+            if (e.key === 'ArrowDown' || (e.ctrlKey && e.key === 'n')) {
                 e.preventDefault();
-                executeCompletion(selectedCompletionIndex);
+                selectedSidebarIndex = (selectedSidebarIndex + 1) % sidebarItems.length;
+                updateSidebar();
                 return;
             }
 
-            // Up arrow - Move selection up
-            if (e.key === 'ArrowUp') {
+            // Arrow Up - Navigate to previous buffer
+            if (e.key === 'ArrowUp' || (e.ctrlKey && e.key === 'p')) {
+                e.preventDefault();
+                selectedSidebarIndex = selectedSidebarIndex === 0
+                    ? sidebarItems.length - 1
+                    : selectedSidebarIndex - 1;
+                updateSidebar();
+                return;
+            }
+
+            // Enter - Select highlighted buffer
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (sidebarItems[selectedSidebarIndex]) {
+                    const selectedItem = sidebarItems[selectedSidebarIndex];
+                    switchBuffer(selectedItem.id, selectedItem.display);
+                    toggleSidebar();
+                }
+                return;
+            }
+
+            // Don't process other keys while sidebar is open
+            return;
+        }
+
+        // Other minibuffer key handlers
+        if (minibuffer.classList.contains('active')) {
+
+            // Enter - Execute selected completion or accept input
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (minibufferMode === 'input') {
+                    // Text input mode - call callback with the input value
+                    const value = minibufferInput.value;
+                    const callback = minibufferCallback;
+                    closeMinibuffer();
+                    if (callback) {
+                        callback(value);
+                    }
+                } else {
+                    // Command mode - execute selected completion
+                    executeCompletion(selectedCompletionIndex);
+                }
+                return;
+            }
+
+            // Up arrow - Move selection up (command mode only)
+            if (e.key === 'ArrowUp' && minibufferMode === 'command') {
                 e.preventDefault();
                 selectedCompletionIndex = Math.max(0, selectedCompletionIndex - 1);
                 updateCompletions(currentCompletions);
                 return;
             }
 
-            // Down arrow - Move selection down
-            if (e.key === 'ArrowDown') {
+            // Down arrow - Move selection down (command mode only)
+            if (e.key === 'ArrowDown' && minibufferMode === 'command') {
                 e.preventDefault();
                 selectedCompletionIndex = Math.min(
                     currentCompletions.length - 1,
@@ -1489,8 +1926,8 @@ ${text}
                 return;
             }
 
-            // Tab - Auto-complete to selected item
-            if (e.key === 'Tab') {
+            // Tab - Auto-complete to selected item (command mode only)
+            if (e.key === 'Tab' && minibufferMode === 'command') {
                 e.preventDefault();
                 if (currentCompletions[selectedCompletionIndex]) {
                     minibufferInput.value = currentCompletions[selectedCompletionIndex].name;
@@ -1511,12 +1948,40 @@ ${text}
                 }, {once: true});
             }, 500);
         }
-    });
+    };
 
-    // Update completions on input
+    // Attach the keydown handler to the document
+    document.addEventListener('keydown', keydownHandler);
+
+    // Update completions on input (command mode only)
     minibufferInput.addEventListener('input', () => {
-        selectedCompletionIndex = 0;
-        showBufferList(); // Re-filter based on new input
+        if (minibufferMode === 'command') {
+            selectedCompletionIndex = 0;
+
+            // Re-filter commands based on new input, preserving usage history for sorting
+            const commandList = Object.keys(commands).map(cmd => ({
+                name: cmd,
+                desc: commands[cmd].desc,
+                func: commands[cmd].func,
+                usage: commandHistory[cmd] || { count: 0, lastUsed: null }
+            }));
+
+            // Sort by usage history (same logic as openMinibuffer)
+            const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+            commandList.sort((a, b) => {
+                const aRecent = a.usage.lastUsed && new Date(a.usage.lastUsed).getTime() > fiveMinutesAgo;
+                const bRecent = b.usage.lastUsed && new Date(b.usage.lastUsed).getTime() > fiveMinutesAgo;
+
+                if (aRecent && !bRecent) return -1;
+                if (!aRecent && bRecent) return 1;
+                if (a.usage.count !== b.usage.count) {
+                    return b.usage.count - a.usage.count;
+                }
+                return a.name.localeCompare(b.name);
+            });
+
+            updateCompletions(commandList);
+        }
     });
 
     // Update time in mode line
@@ -1556,9 +2021,85 @@ ${text}
     // Initialize custom buffers
     initializeCustomBuffers();
 
-    // Check and display login status
+    // Check and display login status - REQUIRE LOGIN TO VIEW CONTENT
     const token = localStorage.getItem('emacs-website-token');
     const username = localStorage.getItem('emacs-website-username');
+
+    function showAuthRequired() {
+        // Hide all buffers
+        document.querySelectorAll('.buffer').forEach(buf => {
+            buf.style.display = 'none';
+        });
+
+        // Hide sidebar
+        sidebar.style.display = 'none';
+
+        // Show authentication required message
+        const authBuffer = document.createElement('div');
+        authBuffer.className = 'buffer active';
+        authBuffer.id = 'auth-required';
+        authBuffer.innerHTML = `
+            <div class="buffer-content" style="max-width: 600px; margin: 50px auto; text-align: center;">
+                <div style="margin-bottom: 30px;">
+                    <div style="font-size: 48px; color: var(--cyan); margin-bottom: 20px;">🔒</div>
+                    <h1 style="color: var(--cyan); font-size: 28px; margin-bottom: 10px;">
+                        ;; Authentication Required
+                    </h1>
+                    <p style="color: var(--fg-dim); font-size: 16px; line-height: 1.6;">
+                        This content is private. You must be logged in to view.
+                    </p>
+                </div>
+
+                <div style="background: var(--bg-dim); border: 2px solid var(--cyan); padding: 30px; margin-bottom: 25px;">
+                    <h2 style="color: var(--green); font-size: 18px; margin-bottom: 15px;">Emacs-Style Commands</h2>
+                    <div style="text-align: left; display: inline-block;">
+                        <p style="color: var(--fg-main); margin: 10px 0;">
+                            <code style="background: var(--bg-main); padding: 4px 8px; color: var(--cyan);">M-x register-user</code>
+                            <span style="color: var(--fg-dim); margin-left: 10px;">→ Create new account</span>
+                        </p>
+                        <p style="color: var(--fg-main); margin: 10px 0;">
+                            <code style="background: var(--bg-main); padding: 4px 8px; color: var(--cyan);">M-x login</code>
+                            <span style="color: var(--fg-dim); margin-left: 10px;">→ Login to existing account</span>
+                        </p>
+                    </div>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--bg-active);">
+                        <p style="color: var(--fg-dim); font-size: 13px; font-style: italic;">
+                            Press <strong style="color: var(--yellow);">M-x</strong> (Alt+x or Cmd+x on Mac) to open command palette
+                        </p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; justify-content: center; margin-top: 25px;">
+                    <a href="/register.html" style="
+                        background: var(--cyan);
+                        color: var(--bg-main);
+                        border: none;
+                        padding: 15px 30px;
+                        font-family: inherit;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        text-decoration: none;
+                        display: inline-block;
+                    ">Register →</a>
+                    <a href="/login.html" style="
+                        background: var(--bg-active);
+                        color: var(--fg-main);
+                        border: 2px solid var(--cyan);
+                        padding: 15px 30px;
+                        font-family: inherit;
+                        font-size: 16px;
+                        cursor: pointer;
+                        text-decoration: none;
+                        display: inline-block;
+                    ">Login</a>
+                </div>
+            </div>
+        `;
+        window_el.appendChild(authBuffer);
+        modeLineBuffer.textContent = '*Authentication Required*';
+    }
+
     if (token && username) {
         console.log(`Logged in as: ${username}`);
         // Add user indicator to mode line
@@ -1569,13 +2110,23 @@ ${text}
             userIndicator.textContent = `✓ ${username}`;
             modeLineTime.parentNode.insertBefore(userIndicator, modeLineTime);
         }
+
+        // Apply org-mode folding to all buffers on page load
+        builtInBuffers.forEach(bufferId => {
+            applyOrgMode(bufferId);
+        });
+        Object.keys(customBuffers).forEach(bufferId => {
+            applyOrgMode(bufferId);
+        });
+
         setTimeout(() => {
-            showMessage(`Logged in as ${username}. Buffers will save to cloud.`);
+            showMessage(`Logged in as ${username}. Press M-x for commands.`);
         }, 500);
     } else {
-        console.log('Not logged in. Buffers will only save locally.');
+        console.log('Not logged in. Showing authentication required.');
+        showAuthRequired();
         setTimeout(() => {
-            showMessage('Not logged in. Press M-x (Alt+x) for commands or visit /register.html');
+            showMessage('Authentication required. Press M-x to login or register.');
         }, 500);
     }
 

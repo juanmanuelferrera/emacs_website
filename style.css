@@ -358,6 +358,20 @@ a:hover {
     padding-left: 27px;
 }
 
+.sidebar-item.selected {
+    background-color: var(--bg-active);
+    color: var(--yellow);
+    border-left: 3px solid var(--yellow);
+    padding-left: 27px;
+}
+
+.sidebar-item.current.selected {
+    background-color: var(--completion-selected);
+    color: var(--yellow);
+    border-left: 3px solid var(--yellow);
+    padding-left: 27px;
+}
+
 .sidebar-item-author {
     color: var(--fg-dim);
     font-size: 11px;
@@ -450,3 +464,23 @@ a:hover {
     font-size: 12px;
     margin-left: 10px;
 }
+
+/* Buffer links in buffer list */
+.buffer-link {
+    color: var(--cyan);
+    text-decoration: none;
+    font-weight: bold;
+    cursor: pointer;
+    border-bottom: 1px dotted var(--cyan);
+}
+
+.buffer-link:hover {
+    color: var(--green);
+    border-bottom-color: var(--green);
+}
+
+.buffer-link:active {
+    color: var(--magenta);
+}
+
+/* Sidebar is now used for M-b buffer list */
