@@ -218,6 +218,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'filter-by-author': {
             func: () => filterByAuthor(),
             desc: 'View content from a specific author'
+        },
+        'toggle-folding': {
+            func: () => toggleAllFolds(),
+            desc: 'Toggle all folds (Shift+TAB)'
+        },
+        'enable-org-mode': {
+            func: () => enableOrgMode(),
+            desc: 'Enable org-mode folding for current buffer'
         }
     };
 
@@ -883,6 +891,100 @@ ${text}
         }
     }
 
+    // Enable org-mode folding for current buffer
+    function enableOrgMode() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        const content = currentBuffer.querySelector('.buffer-content');
+
+        // Parse and wrap org-mode headings
+        const text = content.innerHTML;
+        const lines = text.split('\n');
+        let result = [];
+        let currentLevel = 0;
+        let contentBuffer = [];
+
+        lines.forEach(line => {
+            const match = line.match(/^(\*+)\s+(.+)$/);
+
+            if (match) {
+                // Close previous section
+                if (contentBuffer.length > 0) {
+                    result.push(`<div class="org-content">${contentBuffer.join('\n')}</div>`);
+                    contentBuffer = [];
+                }
+
+                const level = match[1].length;
+                const heading = match[2];
+                result.push(`<div class="org-heading org-level-${level}" data-level="${level}">${heading}</div>`);
+                currentLevel = level;
+            } else {
+                contentBuffer.push(line);
+            }
+        });
+
+        // Close final section
+        if (contentBuffer.length > 0) {
+            result.push(`<div class="org-content">${contentBuffer.join('\n')}</div>`);
+        }
+
+        content.innerHTML = result.join('\n');
+
+        // Add click handlers
+        content.querySelectorAll('.org-heading').forEach(heading => {
+            heading.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleFold(this);
+            });
+        });
+
+        // Calculate max heights
+        content.querySelectorAll('.org-content').forEach(content => {
+            content.style.maxHeight = content.scrollHeight + 'px';
+        });
+
+        showMessage('Org-mode folding enabled. Press TAB on headings to toggle.');
+    }
+
+    // Toggle a specific fold
+    function toggleFold(heading) {
+        const nextElement = heading.nextElementSibling;
+        if (nextElement && nextElement.classList.contains('org-content')) {
+            heading.classList.toggle('collapsed');
+            nextElement.classList.toggle('collapsed');
+        }
+    }
+
+    // Toggle all folds (Shift+TAB)
+    function toggleAllFolds() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        const headings = currentBuffer.querySelectorAll('.org-heading');
+
+        if (headings.length === 0) {
+            showMessage('No org-mode headings found. Use M-x enable-org-mode first.');
+            return;
+        }
+
+        // Check if any are collapsed
+        const anyCollapsed = Array.from(headings).some(h => h.classList.contains('collapsed'));
+
+        headings.forEach(heading => {
+            const nextElement = heading.nextElementSibling;
+            if (nextElement && nextElement.classList.contains('org-content')) {
+                if (anyCollapsed) {
+                    // Expand all
+                    heading.classList.remove('collapsed');
+                    nextElement.classList.remove('collapsed');
+                } else {
+                    // Collapse all
+                    heading.classList.add('collapsed');
+                    nextElement.classList.add('collapsed');
+                }
+            }
+        });
+
+        showMessage(anyCollapsed ? 'Expanded all sections' : 'Collapsed all sections');
+    }
+
     // Filter content by author
     function filterByAuthor() {
         closeMinibuffer();
@@ -1145,6 +1247,30 @@ ${text}
         if (e.altKey && e.key === '>' && !isEditMode) {
             e.preventDefault();
             scrollToBottom();
+            return;
+        }
+
+        // TAB - Toggle fold at cursor / on clicked heading
+        if (e.key === 'Tab' && !isEditMode && !minibuffer.classList.contains('active')) {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                let node = selection.anchorNode;
+                // Find parent org-heading
+                while (node && node !== document.body) {
+                    if (node.classList && node.classList.contains('org-heading')) {
+                        e.preventDefault();
+                        toggleFold(node);
+                        return;
+                    }
+                    node = node.parentNode;
+                }
+            }
+        }
+
+        // Shift+TAB - Toggle all folds
+        if (e.shiftKey && e.key === 'Tab' && !isEditMode && !minibuffer.classList.contains('active')) {
+            e.preventDefault();
+            toggleAllFolds();
             return;
         }
 

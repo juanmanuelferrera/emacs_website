@@ -378,3 +378,75 @@ a:hover {
 .sidebar-overlay.active {
     display: block;
 }
+
+/* Org-mode style folding */
+.org-heading {
+    cursor: pointer;
+    position: relative;
+    padding-left: 20px;
+    user-select: none;
+    transition: color 0.15s ease;
+}
+
+.org-heading:hover {
+    color: var(--cyan);
+}
+
+.org-heading::before {
+    content: '▼';
+    position: absolute;
+    left: 0;
+    color: var(--cyan);
+    font-size: 10px;
+    transition: transform 0.2s ease;
+}
+
+.org-heading.collapsed::before {
+    content: '▶';
+}
+
+.org-content {
+    margin-left: 20px;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+}
+
+.org-content.collapsed {
+    max-height: 0 !important;
+    opacity: 0;
+}
+
+.org-level-1 { 
+    font-size: 1.4em; 
+    font-weight: bold; 
+    color: var(--cyan); 
+    margin-top: 20px;
+}
+
+.org-level-2 { 
+    font-size: 1.2em; 
+    font-weight: bold; 
+    color: var(--green); 
+    margin-top: 15px;
+}
+
+.org-level-3 { 
+    font-size: 1.1em; 
+    font-weight: bold; 
+    color: var(--yellow); 
+    margin-top: 10px;
+}
+
+.org-level-4 { 
+    font-size: 1.05em; 
+    font-weight: bold; 
+    color: var(--magenta); 
+    margin-top: 8px;
+}
+
+/* Folding indicator on mode line */
+.folding-indicator {
+    color: var(--yellow);
+    font-size: 12px;
+    margin-left: 10px;
+}
