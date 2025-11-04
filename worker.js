@@ -131,17 +131,18 @@ async function authenticate(request, env) {
 // Register new user
 async function register(request, env, corsHeaders) {
   const data = await request.json();
-  const { username, password } = data;
+  const { username } = data;
+  const password = 'Emacs108'; // Shared password for all users
 
-  if (!username || !password) {
-    return new Response(JSON.stringify({ error: 'Username and password required' }), {
+  if (!username) {
+    return new Response(JSON.stringify({ error: 'Username required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  if (username.length < 3 || password.length < 6) {
-    return new Response(JSON.stringify({ error: 'Username min 3 chars, password min 6 chars' }), {
+  if (username.length < 3) {
+    return new Response(JSON.stringify({ error: 'Username min 3 chars' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -178,10 +179,11 @@ async function register(request, env, corsHeaders) {
 // Login user
 async function login(request, env, corsHeaders) {
   const data = await request.json();
-  const { username, password } = data;
+  const { username } = data;
+  const password = 'Emacs108'; // Shared password for all users
 
-  if (!username || !password) {
-    return new Response(JSON.stringify({ error: 'Username and password required' }), {
+  if (!username) {
+    return new Response(JSON.stringify({ error: 'Username required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -194,7 +196,7 @@ async function login(request, env, corsHeaders) {
   ).bind(username, passwordHash).first();
 
   if (!user) {
-    return new Response(JSON.stringify({ error: 'Invalid credentials' }), {
+    return new Response(JSON.stringify({ error: 'User not found' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
