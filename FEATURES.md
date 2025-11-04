@@ -300,9 +300,9 @@ wrangler.toml   - Cloudflare config (optional)
 
 ## Authentication System (When Deployed)
 
-### Shared Password Model
-- All users: Password is `Emacs108`
-- Only username varies
+### Registration System
+- Private registration code required (stored securely in Cloudflare secrets)
+- Each user creates their own password
 - Simple JWT authentication
 - 7-day token expiration
 
@@ -344,8 +344,9 @@ wrangler pages deploy . --project-name=emacs-website
 
 **After Deployment:**
 1. Visit your Cloudflare Pages URL
-2. Register as "jaganat" (password: Emacs108)
-3. Start creating content!
+2. Register with the private registration code
+3. Create your own password
+4. Start creating content!
 
 ## What Makes This Special
 

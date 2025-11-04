@@ -945,8 +945,24 @@ ${text}
                 return;
             }
 
-            if (sharedPassword.trim() !== 'Emacs108') {
-                showMessage('✗ Incorrect registration password');
+            // Verify registration code with server
+            const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
+            try {
+                const verifyResponse = await fetch(`${API_URL}/api/auth/verify-registration-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: sharedPassword.trim() })
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (!verifyResponse.ok) {
+                    showMessage('✗ Incorrect registration password');
+                    return;
+                }
+            } catch (error) {
+                showMessage('✗ Error verifying registration code');
+                console.error('Registration code verification error:', error);
                 return;
             }
 
@@ -1151,28 +1167,54 @@ ${text}
         sharedPasswordInput.focus();
 
         // Verify password button
-        verifyPasswordBtn.addEventListener('click', () => {
+        verifyPasswordBtn.addEventListener('click', async () => {
             const sharedPassword = sharedPasswordInput.value.trim();
 
-            if (sharedPassword !== 'Emacs108') {
-                messageDiv.textContent = '✗ Incorrect registration password';
+            // Verify registration code with server
+            const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
+            verifyPasswordBtn.disabled = true;
+            verifyPasswordBtn.textContent = 'Verifying...';
+
+            try {
+                const verifyResponse = await fetch(`${API_URL}/api/auth/verify-registration-code`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: sharedPassword })
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (!verifyResponse.ok) {
+                    messageDiv.textContent = '✗ Incorrect registration password';
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = 'rgba(255, 95, 89, 0.2)';
+                    messageDiv.style.border = '2px solid var(--red)';
+                    messageDiv.style.color = 'var(--red)';
+                    messageDiv.style.fontWeight = 'bold';
+                    sharedPasswordInput.value = '';
+                    sharedPasswordInput.focus();
+                    verifyPasswordBtn.disabled = false;
+                    verifyPasswordBtn.textContent = 'Verify Password';
+                    return;
+                }
+
+                // Password correct - show email section
+                passwordVerified = true;
+                passwordSection.style.display = 'none';
+                emailSection.style.display = 'block';
+                submitBtn.style.display = 'block';
+                messageDiv.style.display = 'none';
+                emailInput.focus();
+            } catch (error) {
+                messageDiv.textContent = '✗ Error verifying registration code';
                 messageDiv.style.display = 'block';
                 messageDiv.style.background = 'rgba(255, 95, 89, 0.2)';
                 messageDiv.style.border = '2px solid var(--red)';
                 messageDiv.style.color = 'var(--red)';
-                messageDiv.style.fontWeight = 'bold';
-                sharedPasswordInput.value = '';
-                sharedPasswordInput.focus();
-                return;
+                console.error('Registration code verification error:', error);
+                verifyPasswordBtn.disabled = false;
+                verifyPasswordBtn.textContent = 'Verify Password';
             }
-
-            // Password correct - show email section
-            passwordVerified = true;
-            passwordSection.style.display = 'none';
-            emailSection.style.display = 'block';
-            submitBtn.style.display = 'block';
-            messageDiv.style.display = 'none';
-            emailInput.focus();
         });
 
         // Allow Enter key to verify password

@@ -40,6 +40,10 @@ export default {
         return await login(request, env, corsHeaders);
       }
 
+      if (url.pathname === '/api/auth/verify-registration-code' && request.method === 'POST') {
+        return await verifyRegistrationCode(request, env, corsHeaders);
+      }
+
       // Protected routes (auth required)
       const user = await authenticate(request, env);
       if (!user) {
@@ -460,6 +464,39 @@ This is an automated message. Please do not reply to this email.`;
     status: 201,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
+}
+
+// Verify registration code (server-side validation)
+async function verifyRegistrationCode(request, env, corsHeaders) {
+  const data = await request.json();
+  const { code } = data;
+
+  if (!code) {
+    return new Response(JSON.stringify({ error: 'Registration code required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check against environment variable
+  const validCode = env.REGISTRATION_PASSWORD || 'Emacs108'; // fallback for development
+
+  if (code.trim() === validCode) {
+    return new Response(JSON.stringify({
+      success: true,
+      message: 'Registration code verified'
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } else {
+    return new Response(JSON.stringify({
+      error: 'Invalid registration code'
+    }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 }
 
 // Login user
