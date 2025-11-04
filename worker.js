@@ -178,8 +178,7 @@ async function authenticate(request, env) {
 // Register new user
 async function register(request, env, corsHeaders) {
   const data = await request.json();
-  const { username } = data;
-  const password = 'Emacs108'; // Shared password for all users
+  const { username, password, email } = data;
 
   if (!username) {
     return new Response(JSON.stringify({ error: 'Username required' }), {
@@ -188,8 +187,23 @@ async function register(request, env, corsHeaders) {
     });
   }
 
+  if (!password || password.length < 6) {
+    return new Response(JSON.stringify({ error: 'Password must be at least 6 characters' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
   if (username.length < 3) {
     return new Response(JSON.stringify({ error: 'Username min 3 chars' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Email is required for sending welcome message
+  if (!email || !email.includes('@')) {
+    return new Response(JSON.stringify({ error: 'Valid email required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -212,8 +226,88 @@ async function register(request, env, corsHeaders) {
   const now = new Date().toISOString();
 
   await env.DB.prepare(
-    'INSERT INTO users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)'
-  ).bind(id, username, passwordHash, now).run();
+    'INSERT INTO users (id, username, password_hash, created_at, email) VALUES (?, ?, ?, ?, ?)'
+  ).bind(id, username, passwordHash, now, email).run();
+
+  // Send welcome email with credentials
+  const emailText = `Welcome to the Emacs Website!
+
+Your account has been created successfully.
+
+Username (Email): ${username}
+Password: ${password}
+
+Please save these credentials securely. You can login at the website using them.
+
+Getting Started:
+1. Visit the site and press M-x (Alt+x or Option+x)
+2. Type "login" to access your account
+3. Enter your email and password above
+
+Learn More:
+For complete documentation and features, visit:
+https://github.com/jaganat/emacs-website
+
+Quick Keyboard Shortcuts:
+- M-x : Open command palette
+- M-m : Toggle sidebar menu
+- C-n : Create new page
+- C-e : Edit page
+- C-h : Show help
+
+---
+This is an automated message. Please do not reply to this email.`;
+
+  // HTML version with clickable links
+  const emailHtml = `
+    <div style="font-family: 'Courier New', monospace; background: #000; color: #fff; padding: 40px;">
+      <div style="max-width: 600px; margin: 0 auto; background: #1e1e1e; border: 2px solid #00d3d0; padding: 30px;">
+        <h2 style="color: #00d3d0; margin-top: 0;">Welcome to the Emacs Website!</h2>
+
+        <p>Your account has been created successfully.</p>
+
+        <div style="background: #2a2a2a; padding: 15px; margin: 20px 0; border-left: 3px solid #00d3d0;">
+          <p style="margin: 5px 0;"><strong>Username (Email):</strong> ${username}</p>
+          <p style="margin: 5px 0;"><strong>Password:</strong> ${password}</p>
+        </div>
+
+        <p style="color: #d0bc00;">⚠️ Please save these credentials securely.</p>
+
+        <h3 style="color: #44bc44;">Getting Started:</h3>
+        <ol style="line-height: 1.8;">
+          <li>Visit the site and press <code style="background: #2a2a2a; padding: 2px 6px; color: #00d3d0;">M-x</code> (Alt+x or Option+x)</li>
+          <li>Type <code style="background: #2a2a2a; padding: 2px 6px; color: #00d3d0;">login</code> to access your account</li>
+          <li>Enter your email and password above</li>
+        </ol>
+
+        <h3 style="color: #44bc44;">Learn More:</h3>
+        <p>For complete documentation and features, visit:</p>
+        <p><a href="https://github.com/jaganat/emacs-website" style="color: #00d3d0; text-decoration: none; font-weight: bold;">📖 GitHub README</a></p>
+
+        <h3 style="color: #44bc44;">Quick Keyboard Shortcuts:</h3>
+        <ul style="list-style: none; padding-left: 0;">
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-x</code> : Open command palette</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">M-m</code> : Toggle sidebar menu</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-n</code> : Create new page</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-e</code> : Edit page</li>
+          <li><code style="background: #2a2a2a; padding: 2px 6px;">C-h</code> : Show help</li>
+        </ul>
+
+        <hr style="border: none; border-top: 1px solid #3a3a3a; margin: 30px 0;">
+
+        <p style="color: #989898; font-size: 12px;">This is an automated message. Please do not reply to this email.</p>
+      </div>
+    </div>
+  `;
+
+  // Send the email (don't fail registration if email fails)
+  await sendEmail(
+    email,
+    'Welcome to Emacs Website - Your Account Details',
+    emailText,
+    env,
+    emailHtml
+  );
 
   const token = await createToken(username);
 
@@ -231,13 +325,6 @@ async function registerWithEmail(request, env, corsHeaders) {
   // Username IS the email
   if (!username || !username.includes('@')) {
     return new Response(JSON.stringify({ error: 'Valid email address required' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
-
-  if (!name) {
-    return new Response(JSON.stringify({ error: 'Full name required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -272,7 +359,7 @@ async function registerWithEmail(request, env, corsHeaders) {
   // Store user in database
   await env.DB.prepare(
     'INSERT INTO users (id, username, password_hash, created_at, email, full_name) VALUES (?, ?, ?, ?, ?, ?)'
-  ).bind(id, username, passwordHash, now, email, name).run();
+  ).bind(id, username, passwordHash, now, email, name || null).run();
 
   // Send email with password
   const emailText = `Welcome to the Emacs Website!
@@ -497,10 +584,18 @@ async function updateBuffer(id, request, env, corsHeaders, user) {
     });
   }
 
-  // Allow edit if user owns it or it's a public community buffer
+  // Check if user owns this buffer
   const builtIn = ['home', 'research', 'philosophy', 'projects', 'espanol', 'writings', 'contact', 'scratch'];
   if (builtIn.includes(id)) {
     return new Response(JSON.stringify({ error: 'Cannot edit built-in buffers' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Only owner can edit
+  if (buffer.created_by !== user.username) {
+    return new Response(JSON.stringify({ error: 'You can only edit your own buffers' }), {
       status: 403,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

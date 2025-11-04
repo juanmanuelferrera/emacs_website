@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Emacs Website</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="window">
+        <div class="buffer active">
+            <div class="buffer-content" style="max-width: 450px; margin: 40px auto;">
+                <div style="text-align: center; margin-bottom: 25px;">
+                    <h1 style="color: var(--cyan); font-size: 24px; margin-bottom: 10px;">
+                        ;; Login
+                    </h1>
+                    <p style="color: var(--fg-dim); font-size: 14px;">
+                        Enter your email and password to continue
+                    </p>
+                </div>
+
+                <div style="margin-bottom: 12px;">
+                    <label style="color: var(--fg-main); display: block; margin-bottom: 5px; font-size: 13px;">
+                        Email:
+                    </label>
+                    <input type="email" id="login-email" style="
+                        width: 100%;
+                        background: var(--bg-main);
+                        border: 1px solid var(--bg-active);
+                        color: var(--fg-main);
+                        padding: 10px;
+                        font-family: inherit;
+                        font-size: 14px;
+                    " placeholder="your.email@example.com" autofocus>
+                </div>
+
+                <div style="margin-bottom: 18px;">
+                    <label style="color: var(--fg-main); display: block; margin-bottom: 5px; font-size: 13px;">
+                        Password:
+                    </label>
+                    <input type="password" id="login-password" style="
+                        width: 100%;
+                        background: var(--bg-main);
+                        border: 1px solid var(--bg-active);
+                        color: var(--fg-main);
+                        padding: 10px;
+                        font-family: inherit;
+                        font-size: 14px;
+                    " placeholder="Your password">
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <button id="login-btn" style="
+                        flex: 1;
+                        background: var(--cyan);
+                        color: var(--bg-main);
+                        border: none;
+                        padding: 15px;
+                        font-family: inherit;
+                        font-size: 15px;
+                        font-weight: bold;
+                        cursor: pointer;
+                    ">Login</button>
+                    <a href="/" style="
+                        flex: 1;
+                        background: var(--bg-active);
+                        color: var(--fg-main);
+                        border: 1px solid var(--fg-dim);
+                        padding: 15px;
+                        font-family: inherit;
+                        font-size: 15px;
+                        cursor: pointer;
+                        text-align: center;
+                        text-decoration: none;
+                        display: block;
+                    ">Cancel</a>
+                </div>
+
+                <div id="message" style="
+                    padding: 15px;
+                    font-size: 13px;
+                    display: none;
+                    border-radius: 4px;
+                "></div>
+
+                <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--bg-active);">
+                    <p style="color: var(--fg-dim); font-size: 13px; margin-bottom: 10px;">
+                        Don't have an account?
+                    </p>
+                    <a href="/register.html" style="color: var(--cyan); font-size: 14px; font-weight: bold;">Register →</a>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px;">
+                    <a href="/" style="color: var(--fg-dim); font-size: 12px;">← Back to Home</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mode-line">
+        <span class="mode-line-buffer" style="color: var(--cyan);">*Login*</span>
+        <span class="mode-line-separator">--</span>
+        <span class="mode-line-mode">Fundamental</span>
+    </div>
+
+    <script>
+        const API_URL = 'https://emacs-website.joanmanelferrera-400.workers.dev';
+
+        // Allow Enter key to submit
+        document.getElementById('login-password').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('login-btn').click();
+            }
+        });
+
+        document.getElementById('login-btn').addEventListener('click', async () => {
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value.trim();
+            const messageDiv = document.getElementById('message');
+            const loginBtn = document.getElementById('login-btn');
+
+            if (!email || !password) {
+                messageDiv.textContent = '✗ Error: Email and password are required';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'rgba(255, 95, 89, 0.2)';
+                messageDiv.style.border = '2px solid #ff5f59';
+                messageDiv.style.color = '#ff5f59';
+                return;
+            }
+
+            loginBtn.textContent = 'Logging in...';
+            loginBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: email, password: password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Save token and username
+                    localStorage.setItem('emacs-website-token', data.token);
+                    localStorage.setItem('emacs-website-username', data.username);
+
+                    messageDiv.textContent = `✓ Success! Logged in as ${data.username}`;
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = 'rgba(68, 188, 68, 0.2)';
+                    messageDiv.style.border = '2px solid #44bc44';
+                    messageDiv.style.color = '#44bc44';
+
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 1000);
+                } else {
+                    messageDiv.textContent = `✗ Error: ${data.error || 'Login failed'}`;
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = 'rgba(255, 95, 89, 0.2)';
+                    messageDiv.style.border = '2px solid #ff5f59';
+                    messageDiv.style.color = '#ff5f59';
+                    loginBtn.textContent = 'Login';
+                    loginBtn.disabled = false;
+                }
+            } catch (error) {
+                messageDiv.textContent = '✗ Network error. Please try again.';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'rgba(255, 95, 89, 0.2)';
+                messageDiv.style.border = '2px solid #ff5f59';
+                messageDiv.style.color = '#ff5f59';
+                loginBtn.textContent = 'Login';
+                loginBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>
