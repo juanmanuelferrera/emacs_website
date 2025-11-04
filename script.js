@@ -7,14 +7,32 @@ document.addEventListener('DOMContentLoaded', () => {
     const minibufferInput = document.getElementById('minibuffer-input');
     const completionsDiv = document.getElementById('minibuffer-completions');
     const modeLineBuffer = document.getElementById('mode-line-buffer');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
 
     // Initialize or load buffers from localStorage
     let customBuffers = JSON.parse(localStorage.getItem('emacs-website-buffers')) || {};
     let currentBufferId = 'home';
     let isEditMode = false;
+    let isSidebarOpen = false;
 
-    // Default built-in buffers (read-only)
+    // Default built-in buffers (read-only) with author info
     const builtInBuffers = ['home', 'research', 'philosophy', 'projects', 'espanol', 'writings', 'contact', 'scratch'];
+
+    const bufferAuthors = {
+        'home': 'Jagannath Mishra Dasa',
+        'research': 'Jagannath Mishra Dasa',
+        'philosophy': 'Jagannath Mishra Dasa',
+        'projects': 'Jagannath Mishra Dasa',
+        'espanol': 'Jagannath Mishra Dasa',
+        'writings': 'Jagannath Mishra Dasa',
+        'contact': 'Jagannath Mishra Dasa',
+        'scratch': 'Public'
+    };
+
+    // Track viewed content for "recent/new" feature
+    let viewedContent = JSON.parse(localStorage.getItem('emacs-website-viewed')) || {};
+    let lastVisit = localStorage.getItem('emacs-website-last-visit') || new Date().toISOString();
 
     // Initialize custom buffers on page load
     function initializeCustomBuffers() {
@@ -24,7 +42,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 createBufferElement(bufferId, buffer.name, buffer.content);
             }
         });
+        updateSidebar();
     }
+
+    // Toggle sidebar
+    function toggleSidebar() {
+        isSidebarOpen = !isSidebarOpen;
+        sidebar.classList.toggle('active');
+        sidebarOverlay.classList.toggle('active');
+        updateSidebarHighlight();
+        showMessage(isSidebarOpen ? 'Sidebar opened' : 'Sidebar closed');
+    }
+
+    // Update sidebar to show current buffer highlighted
+    function updateSidebarHighlight() {
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.classList.remove('current');
+            if (item.dataset.buffer === currentBufferId) {
+                item.classList.add('current');
+            }
+        });
+    }
+
+    // Update sidebar with custom buffers
+    function updateSidebar() {
+        const customBuffersSection = document.getElementById('custom-buffers-section');
+        const customBuffersList = document.getElementById('custom-buffers-list');
+
+        if (Object.keys(customBuffers).length > 0) {
+            customBuffersSection.style.display = 'block';
+            customBuffersList.innerHTML = Object.keys(customBuffers).map(bufferId => {
+                const buffer = customBuffers[bufferId];
+                const author = buffer.author || 'Anonymous';
+                return `
+                    <div class="sidebar-item" data-buffer="${bufferId}" data-display="*${buffer.name}*">
+                        ${buffer.name}
+                        <span class="sidebar-item-author">${author}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // Add click handlers to new custom buffer items
+            customBuffersList.querySelectorAll('.sidebar-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    switchBuffer(item.dataset.buffer, item.dataset.display);
+                    if (isSidebarOpen) {
+                        toggleSidebar();
+                    }
+                });
+            });
+        } else {
+            customBuffersSection.style.display = 'none';
+        }
+    }
+
+    // Close sidebar when clicking overlay
+    sidebarOverlay.addEventListener('click', () => {
+        if (isSidebarOpen) {
+            toggleSidebar();
+        }
+    });
+
+    // Add click handlers to built-in sidebar items
+    document.querySelectorAll('.sidebar-item[data-buffer]').forEach(item => {
+        item.addEventListener('click', () => {
+            switchBuffer(item.dataset.buffer, item.dataset.display);
+            if (isSidebarOpen) {
+                toggleSidebar();
+            }
+        });
+    });
 
     // Available commands
     const commands = {
@@ -35,6 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
         'list-buffers': {
             func: () => showBufferList(),
             desc: 'List all available buffers'
+        },
+        'toggle-sidebar': {
+            func: () => toggleSidebar(),
+            desc: 'Toggle sidebar menu (M-m)'
+        },
+        'recent-content': {
+            func: () => showRecentContent(),
+            desc: 'Show recent/new content you haven\'t seen'
         },
         'new-buffer': {
             func: () => createNewBuffer(),
@@ -51,6 +146,26 @@ document.addEventListener('DOMContentLoaded', () => {
         'save-buffer': {
             func: () => saveCurrentBuffer(),
             desc: 'Save current buffer (C-x C-s)'
+        },
+        'buffer-info': {
+            func: () => showBufferInfo(),
+            desc: 'Show current buffer information'
+        },
+        'export-buffer': {
+            func: () => exportBuffer(),
+            desc: 'Export buffer to text file (C-x C-w)'
+        },
+        'export-to-org': {
+            func: () => exportToOrg(),
+            desc: 'Export buffer to org file'
+        },
+        'export-to-pdf': {
+            func: () => exportToPdf(),
+            desc: 'Export buffer to PDF'
+        },
+        'copy-buffer': {
+            func: () => copyBufferContent(),
+            desc: 'Copy buffer content to clipboard (M-w)'
         },
         'home': {
             func: () => switchBuffer('home', '*Home*'),
@@ -243,8 +358,18 @@ document.addEventListener('DOMContentLoaded', () => {
             targetBuffer.classList.add('active');
             modeLineBuffer.textContent = displayName;
             currentBufferId = bufferName;
+
+            // Mark buffer as viewed
+            markBufferViewed(bufferName);
+
+            // Update sidebar highlight
+            updateSidebarHighlight();
+
+            // Show buffer author in message
+            const author = bufferAuthors[bufferName] || customBuffers[bufferName]?.author || 'Unknown';
+            showMessage(`${displayName} -- ${author}`);
+
             closeMinibuffer();
-            showMessage(`Switched to ${displayName}`);
 
             // Scroll to top
             targetBuffer.scrollTop = 0;
@@ -289,6 +414,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyboardShortcuts = `
 Keyboard Shortcuts:
   M-x         : Open command palette
+  M-m         : Toggle sidebar menu
   C-n         : Create new buffer
   C-e         : Edit current buffer
   C-d         : Delete current buffer
@@ -352,7 +478,7 @@ Keyboard Shortcuts:
         });
     }
 
-    // Export buffer to file
+    // Export buffer to file (txt)
     function exportBuffer() {
         const currentBuffer = document.getElementById(currentBufferId);
         const content = currentBuffer.querySelector('.buffer-content');
@@ -374,6 +500,64 @@ Keyboard Shortcuts:
         showMessage(`Exported to ${filename}`);
     }
 
+    // Export buffer to org file
+    function exportToOrg() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        const content = currentBuffer.querySelector('.buffer-content');
+        const text = content.textContent;
+
+        const bufferName = modeLineBuffer.textContent.replace(/\*/g, '');
+        const author = bufferAuthors[currentBufferId] || customBuffers[currentBufferId]?.author || 'Unknown';
+        const date = new Date().toISOString().split('T')[0];
+
+        // Create org-mode formatted content
+        const orgContent = `#+TITLE: ${bufferName}
+#+AUTHOR: ${author}
+#+DATE: ${date}
+#+OPTIONS: toc:nil num:nil
+
+${text}
+`;
+
+        const filename = `${bufferName.toLowerCase().replace(/\s+/g, '-')}.org`;
+
+        const blob = new Blob([orgContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showMessage(`Exported to ${filename}`);
+    }
+
+    // Export buffer to PDF
+    function exportToPdf() {
+        const bufferName = modeLineBuffer.textContent.replace(/\*/g, '');
+        const originalTitle = document.title;
+
+        // Set title for PDF
+        document.title = bufferName;
+
+        // Hide everything except current buffer
+        const currentBuffer = document.getElementById(currentBufferId);
+        document.body.style.overflow = 'visible';
+        currentBuffer.style.position = 'relative';
+
+        // Trigger print dialog (user can save as PDF)
+        window.print();
+
+        // Restore
+        document.title = originalTitle;
+        document.body.style.overflow = 'hidden';
+        currentBuffer.style.position = '';
+
+        showMessage('Print dialog opened. Choose "Save as PDF"');
+    }
+
     // Scroll to top of buffer
     function scrollToTop() {
         const currentBuffer = document.getElementById(currentBufferId);
@@ -386,6 +570,65 @@ Keyboard Shortcuts:
         const currentBuffer = document.getElementById(currentBufferId);
         currentBuffer.scrollTop = currentBuffer.scrollHeight;
         showMessage('End of buffer');
+    }
+
+    // Show buffer info (author, created date, etc.)
+    function showBufferInfo() {
+        const author = bufferAuthors[currentBufferId] || customBuffers[currentBufferId]?.author || 'Unknown';
+        const bufferName = modeLineBuffer.textContent;
+        const created = customBuffers[currentBufferId]?.created || 'Built-in';
+        const modified = customBuffers[currentBufferId]?.modified || 'N/A';
+
+        let info = `Buffer: ${bufferName}\nAuthor: ${author}`;
+        if (created !== 'Built-in') {
+            info += `\nCreated: ${new Date(created).toLocaleString()}`;
+            if (modified !== 'N/A') {
+                info += `\nModified: ${new Date(modified).toLocaleString()}`;
+            }
+        }
+
+        alert(info);
+        closeMinibuffer();
+    }
+
+    // Show recent/new content
+    function showRecentContent() {
+        closeMinibuffer();
+
+        // Get all buffers with their last modified dates
+        const allBuffers = [
+            ...builtInBuffers.map(id => ({
+                id,
+                name: id,
+                modified: viewedContent[id] || null,
+                isNew: !viewedContent[id]
+            })),
+            ...Object.keys(customBuffers).map(id => ({
+                id,
+                name: customBuffers[id].name,
+                modified: customBuffers[id].modified || customBuffers[id].created,
+                isNew: new Date(customBuffers[id].created) > new Date(lastVisit)
+            }))
+        ];
+
+        // Filter for new/unviewed content
+        const newContent = allBuffers.filter(b => b.isNew || !viewedContent[b.id]);
+
+        if (newContent.length === 0) {
+            showMessage('No new content. You\'re all caught up!');
+            return;
+        }
+
+        // Show list of new content
+        const list = newContent.map(b => `  - ${b.name} ${b.isNew ? '(NEW)' : '(unread)'}`).join('\n');
+        alert(`Recent/New Content:\n\n${list}\n\nUse M-x to switch to these buffers.`);
+    }
+
+    // Mark buffer as viewed
+    function markBufferViewed(bufferId) {
+        viewedContent[bufferId] = new Date().toISOString();
+        localStorage.setItem('emacs-website-viewed', JSON.stringify(viewedContent));
+        localStorage.setItem('emacs-website-last-visit', new Date().toISOString());
     }
 
     // Open minibuffer with M-x
@@ -485,6 +728,13 @@ Keyboard Shortcuts:
         if (e.altKey && e.key === 'x') {
             e.preventDefault();
             openMinibuffer();
+            return;
+        }
+
+        // M-m (Alt+m) - Toggle sidebar
+        if (e.altKey && e.key === 'm' && !isEditMode) {
+            e.preventDefault();
+            toggleSidebar();
             return;
         }
 

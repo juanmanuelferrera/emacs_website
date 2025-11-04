@@ -7,6 +7,47 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Sidebar overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Sidebar menu (M-m toggle) -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">Buffers</div>
+
+        <div class="sidebar-section">
+            <div class="sidebar-section-title">Built-in</div>
+            <div class="sidebar-item" data-buffer="home" data-display="*Home*">
+                Home
+            </div>
+            <div class="sidebar-item" data-buffer="research" data-display="*Research*">
+                Research
+            </div>
+            <div class="sidebar-item" data-buffer="philosophy" data-display="*Philosophy*">
+                Philosophy
+            </div>
+            <div class="sidebar-item" data-buffer="projects" data-display="*Projects*">
+                Projects
+            </div>
+            <div class="sidebar-item" data-buffer="espanol" data-display="*Español*">
+                Español
+            </div>
+            <div class="sidebar-item" data-buffer="writings" data-display="*Writings*">
+                Writings
+            </div>
+            <div class="sidebar-item" data-buffer="contact" data-display="*Contact*">
+                Contact
+            </div>
+            <div class="sidebar-item" data-buffer="scratch" data-display="*scratch*">
+                *scratch*
+            </div>
+        </div>
+
+        <div class="sidebar-section" id="custom-buffers-section" style="display: none;">
+            <div class="sidebar-section-title">Custom</div>
+            <div id="custom-buffers-list"></div>
+        </div>
+    </div>
+
     <!-- Main content area (the buffer) -->
     <div class="window">
         <div class="buffer active" id="home">
