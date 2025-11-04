@@ -1698,13 +1698,13 @@ ${text}
 
         // Don't intercept if we're in a contenteditable in edit mode
         if (isEditMode && e.target.contentEditable === 'true') {
-            // Allow C-x C-s to save even in edit mode
+            // Allow C-x s to save even in edit mode (Emacs-style: press C-x, release, then press s)
             if (e.ctrlKey && e.key === 'x') {
                 e.preventDefault();
-                showMessage('C-x-  (press s to save, or another key to continue)');
+                showMessage('C-x-  (press s to save, or any other key to continue)');
                 // Listen for the next key immediately
                 const saveHandler = function(e2) {
-                    if (e2.ctrlKey && e2.key === 's') {
+                    if (e2.key === 's') {
                         e2.preventDefault();
                         exitEditMode(true);
                     }
@@ -1808,11 +1808,11 @@ ${text}
             return;
         }
 
-        // C-x C-w - Export/save buffer to file
+        // C-x w - Export/save buffer to file (Emacs-style: press C-x, release, then press w)
         if (e.ctrlKey && e.key === 'x' && !isEditMode) {
             setTimeout(() => {
                 document.addEventListener('keydown', function exportHandler(e2) {
-                    if (e2.ctrlKey && e2.key === 'w') {
+                    if (e2.key === 'w') {
                         e2.preventDefault();
                         exportBuffer();
                         document.removeEventListener('keydown', exportHandler);
@@ -1860,13 +1860,13 @@ ${text}
             return;
         }
 
-        // C-x C-s - Save buffer
+        // C-x s - Save buffer (Emacs-style: press C-x, release, then press s)
         if (e.ctrlKey && e.key === 'x' && !isEditMode) {
             e.preventDefault();
-            showMessage('C-x-  (press s to save, or another key to continue)');
+            showMessage('C-x-  (press s to save, or any other key to continue)');
             // Listen for the next key immediately
             const saveHandler = function(e2) {
-                if (e2.ctrlKey && e2.key === 's') {
+                if (e2.key === 's') {
                     e2.preventDefault();
                     saveCurrentBuffer();
                 }
