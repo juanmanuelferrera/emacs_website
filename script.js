@@ -687,13 +687,13 @@ Keyboard Shortcuts:
   C-n         : Create new buffer
   C-e         : Edit current buffer
   C-d         : Delete current buffer
+  C-s         : Save buffer
+  C-f         : Search in current buffer
   C-l         : List all buffers
   C-h         : Show this help
-  C-s         : Search in current buffer
   C-r         : Reload page
   C-k         : Clear scratch buffer
   M-w         : Copy buffer content
-  C-x C-s     : Save buffer
   C-x C-w     : Export buffer to file
   M-<         : Go to beginning
   M->         : Go to end
@@ -1698,19 +1698,10 @@ ${text}
 
         // Don't intercept if we're in a contenteditable in edit mode
         if (isEditMode && e.target.contentEditable === 'true') {
-            // Allow C-x s to save even in edit mode (Emacs-style: press C-x, release, then press s)
-            if (e.ctrlKey && e.key === 'x') {
+            // C-s - Save and exit edit mode
+            if (e.ctrlKey && e.key === 's') {
                 e.preventDefault();
-                showMessage('C-x-  (press s to save, or any other key to continue)');
-                // Listen for the next key immediately
-                const saveHandler = function(e2) {
-                    if (e2.key === 's') {
-                        e2.preventDefault();
-                        exitEditMode(true);
-                    }
-                    document.removeEventListener('keydown', saveHandler);
-                };
-                document.addEventListener('keydown', saveHandler, {once: true});
+                exitEditMode(true);
                 return;
             }
 
@@ -1776,8 +1767,15 @@ ${text}
             return;
         }
 
-        // C-s - Search in current buffer
+        // C-s - Save buffer (simplified from C-x C-s)
         if (e.ctrlKey && e.key === 's' && !isEditMode) {
+            e.preventDefault();
+            saveCurrentBuffer();
+            return;
+        }
+
+        // C-f - Search in current buffer (changed from C-s)
+        if (e.ctrlKey && e.key === 'f' && !isEditMode) {
             e.preventDefault();
             searchInBuffer();
             return;
@@ -1857,22 +1855,6 @@ ${text}
         if (e.shiftKey && e.key === 'Tab' && !isEditMode && !minibuffer.classList.contains('active')) {
             e.preventDefault();
             toggleAllFolds();
-            return;
-        }
-
-        // C-x s - Save buffer (Emacs-style: press C-x, release, then press s)
-        if (e.ctrlKey && e.key === 'x' && !isEditMode) {
-            e.preventDefault();
-            showMessage('C-x-  (press s to save, or any other key to continue)');
-            // Listen for the next key immediately
-            const saveHandler = function(e2) {
-                if (e2.key === 's') {
-                    e2.preventDefault();
-                    saveCurrentBuffer();
-                }
-                document.removeEventListener('keydown', saveHandler);
-            };
-            document.addEventListener('keydown', saveHandler, {once: true});
             return;
         }
 

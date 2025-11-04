@@ -22,10 +22,10 @@ https://main.emacs-website.pages.dev
 | `C-n` | Create new page |
 | `C-e` | Edit current page |
 | `C-d` | Delete page (y/n confirmation) |
-| `C-s` | Search in page |
+| `C-s` | Save page |
+| `C-f` | Search in page |
 | `C-k` | Clear *scratch* buffer |
 | `C-h` | Show help |
-| `C-x C-s` | Save page |
 | `M-w` | Copy page content |
 | `TAB` | Toggle section fold |
 | `ESC` | Cancel operation |

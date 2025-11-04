@@ -40,12 +40,12 @@
 - Enable contentEditable mode
 - Visual cyan outline when editing
 - Mode line shows "Edit" in yellow
-- Save with C-x C-s
+- Save with C-s
 - Cancel with ESC
 - Can also use: `M-x edit-buffer`
 
-#### Save Page (C-x C-s)
-- **Trigger:** Hold `Ctrl+x`, then press `Ctrl+s`
+#### Save Page (C-s)
+- **Trigger:** `Ctrl+s`
 - Saves content to localStorage
 - Exits edit mode
 - Shows confirmation message
@@ -112,8 +112,8 @@
 
 ### Navigation Commands
 
-#### Search in Buffer (C-s)
-- **Trigger:** `Ctrl+s`
+#### Search in Buffer (C-f)
+- **Trigger:** `Ctrl+f`
 - Prompt for search term
 - Uses browser's built-in find
 - Case-insensitive
@@ -219,10 +219,10 @@ Content Management:
   C-n         : Create new page/buffer
   C-e         : Edit current page
   C-d         : Delete current page
-  C-x C-s     : Save current page
+  C-s         : Save current page
 
 Buffer Navigation:
-  C-s         : Search in current buffer
+  C-f         : Search in current buffer
   M-<         : Go to beginning
   M->         : Go to end
 
