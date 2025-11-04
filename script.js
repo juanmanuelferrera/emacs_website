@@ -292,12 +292,100 @@ Keyboard Shortcuts:
   C-n         : Create new buffer
   C-e         : Edit current buffer
   C-d         : Delete current buffer
+  C-l         : List all buffers
+  C-h         : Show this help
+  C-s         : Search in current buffer
+  C-r         : Reload page
+  C-k         : Clear scratch buffer
+  M-w         : Copy buffer content
   C-x C-s     : Save buffer
+  C-x C-w     : Export buffer to file
+  M-<         : Go to beginning
+  M->         : Go to end
   ESC         : Cancel operation
   C-g         : Cancel operation
 `;
         alert(`Available Commands:\n\n${helpText}\n${keyboardShortcuts}`);
         closeMinibuffer();
+    }
+
+    // Search in current buffer
+    function searchInBuffer() {
+        const searchTerm = prompt('Search for:');
+        if (!searchTerm) return;
+
+        const currentBuffer = document.getElementById(currentBufferId);
+        const content = currentBuffer.querySelector('.buffer-content');
+        const text = content.textContent;
+
+        if (text.toLowerCase().includes(searchTerm.toLowerCase())) {
+            // Use browser's built-in find
+            window.find(searchTerm, false, false, true);
+            showMessage(`Found: ${searchTerm}`);
+        } else {
+            showMessage(`Not found: ${searchTerm}`);
+        }
+    }
+
+    // Clear scratch buffer
+    function clearScratchBuffer() {
+        if (currentBufferId !== 'scratch') return;
+
+        if (confirm('Clear *scratch* buffer?')) {
+            const scratchBuffer = document.getElementById('scratch');
+            const content = scratchBuffer.querySelector('.buffer-content');
+            content.textContent = ';; This buffer is for notes that are not saved.\n;; Press M-x for available commands\n\n';
+            showMessage('*scratch* buffer cleared');
+        }
+    }
+
+    // Copy buffer content to clipboard
+    function copyBufferContent() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        const content = currentBuffer.querySelector('.buffer-content');
+        const text = content.textContent;
+
+        navigator.clipboard.writeText(text).then(() => {
+            showMessage('Buffer content copied to clipboard');
+        }).catch(() => {
+            showMessage('Failed to copy content');
+        });
+    }
+
+    // Export buffer to file
+    function exportBuffer() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        const content = currentBuffer.querySelector('.buffer-content');
+        const text = content.textContent;
+
+        const bufferName = modeLineBuffer.textContent.replace(/\*/g, '');
+        const filename = `${bufferName.toLowerCase().replace(/\s+/g, '-')}.txt`;
+
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        showMessage(`Exported to ${filename}`);
+    }
+
+    // Scroll to top of buffer
+    function scrollToTop() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        currentBuffer.scrollTop = 0;
+        showMessage('Beginning of buffer');
+    }
+
+    // Scroll to bottom of buffer
+    function scrollToBottom() {
+        const currentBuffer = document.getElementById(currentBufferId);
+        currentBuffer.scrollTop = currentBuffer.scrollHeight;
+        showMessage('End of buffer');
     }
 
     // Open minibuffer with M-x
@@ -418,6 +506,81 @@ Keyboard Shortcuts:
         if (e.ctrlKey && e.key === 'd' && !isEditMode) {
             e.preventDefault();
             deleteCurrentBuffer();
+            return;
+        }
+
+        // C-l - List all buffers
+        if (e.ctrlKey && e.key === 'l' && !isEditMode) {
+            e.preventDefault();
+            openMinibuffer();
+            showBufferList();
+            return;
+        }
+
+        // C-h - Help
+        if (e.ctrlKey && e.key === 'h' && !isEditMode) {
+            e.preventDefault();
+            showHelp();
+            return;
+        }
+
+        // C-s - Search in current buffer
+        if (e.ctrlKey && e.key === 's' && !isEditMode) {
+            e.preventDefault();
+            searchInBuffer();
+            return;
+        }
+
+        // C-r - Reload/refresh page
+        if (e.ctrlKey && e.key === 'r' && !isEditMode) {
+            e.preventDefault();
+            location.reload();
+            return;
+        }
+
+        // C-k - Kill/clear scratch buffer
+        if (e.ctrlKey && e.key === 'k' && !isEditMode) {
+            e.preventDefault();
+            if (currentBufferId === 'scratch') {
+                clearScratchBuffer();
+            } else {
+                showMessage('C-k only works in *scratch* buffer');
+            }
+            return;
+        }
+
+        // M-w - Copy buffer content
+        if (e.altKey && e.key === 'w' && !isEditMode) {
+            e.preventDefault();
+            copyBufferContent();
+            return;
+        }
+
+        // C-x C-w - Export/save buffer to file
+        if (e.ctrlKey && e.key === 'x' && !isEditMode) {
+            setTimeout(() => {
+                document.addEventListener('keydown', function exportHandler(e2) {
+                    if (e2.ctrlKey && e2.key === 'w') {
+                        e2.preventDefault();
+                        exportBuffer();
+                        document.removeEventListener('keydown', exportHandler);
+                    }
+                }, {once: true});
+            }, 500);
+            return;
+        }
+
+        // M-< - Go to beginning of buffer
+        if (e.altKey && e.key === '<' && !isEditMode) {
+            e.preventDefault();
+            scrollToTop();
+            return;
+        }
+
+        // M-> - Go to end of buffer
+        if (e.altKey && e.key === '>' && !isEditMode) {
+            e.preventDefault();
+            scrollToBottom();
             return;
         }
 
