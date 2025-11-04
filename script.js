@@ -206,6 +206,18 @@ document.addEventListener('DOMContentLoaded', () => {
         'reload': {
             func: () => location.reload(),
             desc: 'Reload the page'
+        },
+        'register-user': {
+            func: () => registerUser(),
+            desc: 'Register new user (password emailed)'
+        },
+        'login': {
+            func: () => loginUser(),
+            desc: 'Login with username and password'
+        },
+        'filter-by-author': {
+            func: () => filterByAuthor(),
+            desc: 'View content from a specific author'
         }
     };
 
@@ -629,6 +641,328 @@ ${text}
         viewedContent[bufferId] = new Date().toISOString();
         localStorage.setItem('emacs-website-viewed', JSON.stringify(viewedContent));
         localStorage.setItem('emacs-website-last-visit', new Date().toISOString());
+    }
+
+    // Register new user (Emacs-style)
+    async function registerUser() {
+        closeMinibuffer();
+
+        // Create custom registration dialog (Emacs-style)
+        const dialog = document.createElement('div');
+        dialog.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--bg-dim);
+            border: 2px solid var(--cyan);
+            padding: 30px;
+            z-index: 2000;
+            font-family: "iA Writer Mono S", "Menlo", "Monaco", monospace;
+            min-width: 500px;
+            box-shadow: 0 4px 20px rgba(0, 215, 208, 0.2);
+        `;
+
+        dialog.innerHTML = `
+            <div style="color: var(--cyan); font-size: 16px; margin-bottom: 20px; font-weight: bold;">
+                Register New Account
+            </div>
+            <div style="color: var(--fg-dim); font-size: 12px; margin-bottom: 20px;">
+                A random password will be generated and emailed to you.
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Username:</label>
+                <input type="text" id="reg-username" style="
+                    width: 100%;
+                    background: var(--bg-main);
+                    border: 1px solid var(--bg-active);
+                    color: var(--fg-main);
+                    padding: 8px;
+                    font-family: inherit;
+                    font-size: 14px;
+                " placeholder="jaganat">
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Full Name:</label>
+                <input type="text" id="reg-name" style="
+                    width: 100%;
+                    background: var(--bg-main);
+                    border: 1px solid var(--bg-active);
+                    color: var(--fg-main);
+                    padding: 8px;
+                    font-family: inherit;
+                    font-size: 14px;
+                " placeholder="Jagannath Mishra Dasa">
+            </div>
+            <div style="margin-bottom: 20px;">
+                <label style="color: var(--fg-main); display: block; margin-bottom: 5px;">Email:</label>
+                <input type="email" id="reg-email" style="
+                    width: 100%;
+                    background: var(--bg-main);
+                    border: 1px solid var(--bg-active);
+                    color: var(--fg-main);
+                    padding: 8px;
+                    font-family: inherit;
+                    font-size: 14px;
+                " placeholder="jaganat@example.com">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button id="reg-submit" style="
+                    flex: 1;
+                    background: var(--cyan);
+                    color: var(--bg-main);
+                    border: none;
+                    padding: 10px;
+                    font-family: inherit;
+                    font-size: 14px;
+                    font-weight: bold;
+                    cursor: pointer;
+                ">Register (C-c C-c)</button>
+                <button id="reg-cancel" style="
+                    flex: 1;
+                    background: var(--bg-active);
+                    color: var(--fg-main);
+                    border: 1px solid var(--fg-dim);
+                    padding: 10px;
+                    font-family: inherit;
+                    font-size: 14px;
+                    cursor: pointer;
+                ">Cancel (ESC)</button>
+            </div>
+            <div id="reg-message" style="
+                margin-top: 15px;
+                padding: 10px;
+                font-size: 12px;
+                display: none;
+            "></div>
+        `;
+
+        // Create overlay
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 1999;
+        `;
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(dialog);
+
+        const usernameInput = document.getElementById('reg-username');
+        const nameInput = document.getElementById('reg-name');
+        const emailInput = document.getElementById('reg-email');
+        const submitBtn = document.getElementById('reg-submit');
+        const cancelBtn = document.getElementById('reg-cancel');
+        const messageDiv = document.getElementById('reg-message');
+
+        usernameInput.focus();
+
+        // Handle submission
+        const handleSubmit = async () => {
+            const username = usernameInput.value.trim();
+            const name = nameInput.value.trim();
+            const email = emailInput.value.trim();
+
+            if (!username || username.length < 3) {
+                messageDiv.textContent = 'Username must be at least 3 characters';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'var(--red)';
+                messageDiv.style.color = 'var(--bg-main)';
+                return;
+            }
+
+            if (!name) {
+                messageDiv.textContent = 'Full name is required';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'var(--red)';
+                messageDiv.style.color = 'var(--bg-main)';
+                return;
+            }
+
+            if (!email || !email.includes('@')) {
+                messageDiv.textContent = 'Valid email is required';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'var(--red)';
+                messageDiv.style.color = 'var(--bg-main)';
+                return;
+            }
+
+            submitBtn.textContent = 'Registering...';
+            submitBtn.disabled = true;
+
+            try {
+                // TODO: Replace with your actual API URL after deployment
+                const API_URL = 'http://localhost:8787'; // Will be updated after deployment
+
+                const response = await fetch(`${API_URL}/api/auth/register-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, name, email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    messageDiv.textContent = `Success! Password has been emailed to ${email}`;
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = 'var(--green)';
+                    messageDiv.style.color = 'var(--bg-main)';
+
+                    setTimeout(() => {
+                        overlay.remove();
+                        dialog.remove();
+                        showMessage(`Registration successful! Check ${email} for password`);
+                    }, 3000);
+                } else {
+                    messageDiv.textContent = data.error || 'Registration failed';
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.background = 'var(--red)';
+                    messageDiv.style.color = 'var(--bg-main)';
+                    submitBtn.textContent = 'Register (C-c C-c)';
+                    submitBtn.disabled = false;
+                }
+            } catch (error) {
+                messageDiv.textContent = 'Network error. Check API_URL in script.js';
+                messageDiv.style.display = 'block';
+                messageDiv.style.background = 'var(--red)';
+                messageDiv.style.color = 'var(--bg-main)';
+                submitBtn.textContent = 'Register (C-c C-c)';
+                submitBtn.disabled = false;
+            }
+        };
+
+        const handleCancel = () => {
+            overlay.remove();
+            dialog.remove();
+            showMessage('Registration cancelled');
+        };
+
+        submitBtn.addEventListener('click', handleSubmit);
+        cancelBtn.addEventListener('click', handleCancel);
+        overlay.addEventListener('click', handleCancel);
+
+        // Keyboard shortcuts
+        dialog.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                handleCancel();
+            }
+            if (e.ctrlKey && e.key === 'c') {
+                setTimeout(() => {
+                    document.addEventListener('keydown', function ccHandler(e2) {
+                        if (e2.ctrlKey && e2.key === 'c') {
+                            e2.preventDefault();
+                            handleSubmit();
+                            document.removeEventListener('keydown', ccHandler);
+                        }
+                    }, { once: true });
+                }, 500);
+            }
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                handleSubmit();
+            }
+        });
+    }
+
+    // Login user
+    async function loginUser() {
+        closeMinibuffer();
+
+        const username = prompt('Username:');
+        if (!username) return;
+
+        const password = prompt('Password:');
+        if (!password) return;
+
+        try {
+            // TODO: Replace with your actual API URL after deployment
+            const API_URL = 'http://localhost:8787';
+
+            const response = await fetch(`${API_URL}/api/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                localStorage.setItem('emacs-website-token', data.token);
+                localStorage.setItem('emacs-website-username', data.username);
+                showMessage(`Logged in as ${data.username}`);
+            } else {
+                alert(`Login failed: ${data.error}`);
+            }
+        } catch (error) {
+            alert('Login failed: Network error. Check API_URL in script.js');
+        }
+    }
+
+    // Filter content by author
+    function filterByAuthor() {
+        closeMinibuffer();
+
+        const author = prompt('Author name (e.g., jaganat or "Jagannath Mishra Dasa"):');
+        if (!author) return;
+
+        // Find all buffers by this author
+        const matchingBuffers = [];
+
+        // Check built-in buffers
+        builtInBuffers.forEach(bufferId => {
+            const bufferAuthor = bufferAuthors[bufferId];
+            if (bufferAuthor && (
+                bufferAuthor.toLowerCase().includes(author.toLowerCase()) ||
+                bufferId.toLowerCase().includes(author.toLowerCase())
+            )) {
+                matchingBuffers.push({
+                    id: bufferId,
+                    name: bufferId.charAt(0).toUpperCase() + bufferId.slice(1),
+                    author: bufferAuthor,
+                    display: `*${bufferId.charAt(0).toUpperCase() + bufferId.slice(1)}*`
+                });
+            }
+        });
+
+        // Check custom buffers
+        Object.keys(customBuffers).forEach(bufferId => {
+            const buffer = customBuffers[bufferId];
+            const bufferAuthor = buffer.author || 'Anonymous';
+            if (bufferAuthor.toLowerCase().includes(author.toLowerCase()) ||
+                buffer.name.toLowerCase().includes(author.toLowerCase())) {
+                matchingBuffers.push({
+                    id: bufferId,
+                    name: buffer.name,
+                    author: bufferAuthor,
+                    display: `*${buffer.name}*`
+                });
+            }
+        });
+
+        if (matchingBuffers.length === 0) {
+            showMessage(`No content found by author: ${author}`);
+            return;
+        }
+
+        // Show results in alert (Emacs-style)
+        const resultText = matchingBuffers.map(b =>
+            `  ${b.name.padEnd(20)} -- ${b.author}`
+        ).join('\n');
+
+        alert(`Content by "${author}" (${matchingBuffers.length} buffer${matchingBuffers.length > 1 ? 's' : ''}):\n\n${resultText}\n\nPress M-x to switch to any of these buffers.`);
+
+        // Open minibuffer with filtered list
+        openMinibuffer();
+        updateCompletions(matchingBuffers.map(b => ({
+            name: b.id,
+            desc: `${b.name} by ${b.author}`,
+            func: () => switchBuffer(b.id, b.display)
+        })));
     }
 
     // Open minibuffer with M-x

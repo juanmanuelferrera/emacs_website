@@ -32,6 +32,10 @@ export default {
         return await register(request, env, corsHeaders);
       }
 
+      if (url.pathname === '/api/auth/register-email' && request.method === 'POST') {
+        return await registerWithEmail(request, env, corsHeaders);
+      }
+
       if (url.pathname === '/api/auth/login' && request.method === 'POST') {
         return await login(request, env, corsHeaders);
       }
@@ -83,6 +87,46 @@ async function hashPassword(password) {
   return Array.from(new Uint8Array(hash))
     .map(b => b.toString(16).padStart(2, '0'))
     .join('');
+}
+
+// Generate random password
+function generatePassword(length = 12) {
+  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  const array = new Uint8Array(length);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < length; i++) {
+    password += chars[array[i] % chars.length];
+  }
+  return password;
+}
+
+// Send email using Mailgun (you'll need to set MAILGUN_API_KEY and MAILGUN_DOMAIN in env)
+async function sendEmail(to, subject, text, env) {
+  // Check if Mailgun is configured
+  if (!env.MAILGUN_API_KEY || !env.MAILGUN_DOMAIN) {
+    console.error('Mailgun not configured. Set MAILGUN_API_KEY and MAILGUN_DOMAIN');
+    return false;
+  }
+
+  const formData = new FormData();
+  formData.append('from', `Emacs Website <noreply@${env.MAILGUN_DOMAIN}>`);
+  formData.append('to', to);
+  formData.append('subject', subject);
+  formData.append('text', text);
+
+  const response = await fetch(
+    `https://api.mailgun.net/v3/${env.MAILGUN_DOMAIN}/messages`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Basic ' + btoa('api:' + env.MAILGUN_API_KEY)
+      },
+      body: formData
+    }
+  );
+
+  return response.ok;
 }
 
 // Create JWT token
@@ -176,14 +220,106 @@ async function register(request, env, corsHeaders) {
   });
 }
 
+// Register with email (generates and emails password)
+async function registerWithEmail(request, env, corsHeaders) {
+  const data = await request.json();
+  const { username, name, email } = data;
+
+  if (!username || username.length < 3) {
+    return new Response(JSON.stringify({ error: 'Username must be at least 3 characters' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!name) {
+    return new Response(JSON.stringify({ error: 'Full name required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!email || !email.includes('@')) {
+    return new Response(JSON.stringify({ error: 'Valid email required' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if username exists
+  const existing = await env.DB.prepare(
+    'SELECT username FROM users WHERE username = ?'
+  ).bind(username).first();
+
+  if (existing) {
+    return new Response(JSON.stringify({ error: 'Username already taken' }), {
+      status: 409,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Generate random password
+  const password = generatePassword(12);
+  const passwordHash = await hashPassword(password);
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  // Store user in database
+  await env.DB.prepare(
+    'INSERT INTO users (id, username, password_hash, created_at, email, full_name) VALUES (?, ?, ?, ?, ?, ?)'
+  ).bind(id, username, passwordHash, now, email, name).run();
+
+  // Send email with password
+  const emailText = `Welcome to the Emacs Website!
+
+Your account has been created successfully.
+
+Username: ${username}
+Password: ${password}
+
+Please save this password securely. You can login at the website using these credentials.
+
+Visit the site and press M-x, then type "login" to access your account.
+
+---
+This is an automated message. Please do not reply to this email.`;
+
+  const emailSent = await sendEmail(
+    email,
+    'Your Emacs Website Account',
+    emailText,
+    env
+  );
+
+  if (!emailSent) {
+    // If email fails, still return success but indicate email issue
+    return new Response(JSON.stringify({
+      success: true,
+      warning: 'Account created but email sending failed. Contact admin for password.',
+      username
+    }), {
+      status: 201,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    username,
+    message: 'Password has been emailed to you'
+  }), {
+    status: 201,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 // Login user
 async function login(request, env, corsHeaders) {
   const data = await request.json();
-  const { username } = data;
-  const password = 'Emacs108'; // Shared password for all users
+  const { username, password } = data;
 
-  if (!username) {
-    return new Response(JSON.stringify({ error: 'Username required' }), {
+  if (!username || !password) {
+    return new Response(JSON.stringify({ error: 'Username and password required' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -196,7 +332,7 @@ async function login(request, env, corsHeaders) {
   ).bind(username, passwordHash).first();
 
   if (!user) {
-    return new Response(JSON.stringify({ error: 'User not found' }), {
+    return new Response(JSON.stringify({ error: 'Invalid username or password' }), {
       status: 401,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
