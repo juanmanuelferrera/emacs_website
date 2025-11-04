@@ -91,10 +91,20 @@ wrangler pages deploy .
 
 ### Register a New Account
 
+**Note:** All users share the same password: `Emacs108`
+
 1. Visit your deployed site
 2. Press `M-x` → type `register`
-3. Enter username (min 3 chars) and password (min 6 chars)
+3. Enter username (min 3 chars) - Password is automatically `Emacs108`
 4. You're automatically logged in!
+
+**Example:** Register as "jaganat" (your main account):
+```bash
+# After site is deployed, visit the URL
+# Press M-x, type "register"
+# Username: jaganat
+# Password: Emacs108 (automatic)
+```
 
 ### Login
 

@@ -146,20 +146,22 @@ body {
     background-color: var(--bg-active);
 }
 
-/* Completions popup */
+/* Completions popup - Vertico style */
 .minibuffer-completions {
     display: none;
     position: fixed;
     bottom: 60px;
-    left: 12px;
-    right: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 800px;
+    max-width: 90%;
     background-color: var(--completion-bg);
-    border: 1px solid var(--bg-active);
-    max-height: 300px;
+    border: 1px solid var(--cyan);
+    max-height: 400px;
     overflow-y: auto;
     font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
     font-size: 13px;
-    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 -4px 20px rgba(0, 215, 208, 0.1);
 }
 
 .minibuffer-completions.active {
@@ -167,21 +169,35 @@ body {
 }
 
 .completion-item {
-    padding: 6px 12px;
+    padding: 8px 16px;
     cursor: pointer;
     color: var(--fg-main);
+    border-left: 3px solid transparent;
+    display: flex;
+    align-items: center;
+    transition: all 0.1s ease;
 }
 
-.completion-item:hover,
+.completion-item:hover {
+    background-color: var(--bg-active);
+}
+
 .completion-item.selected {
     background-color: var(--completion-selected);
-    color: var(--yellow);
+    border-left-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.completion-item.selected .completion-description {
+    color: var(--fg-main);
 }
 
 .completion-description {
     color: var(--fg-dim);
-    margin-left: 20px;
-    font-size: 12px;
+    margin-left: auto;
+    padding-left: 20px;
+    font-size: 11px;
+    font-style: italic;
 }
 
 /* Scrollbar styling (Emacs-like) */
