@@ -1,6 +1,8 @@
 # Emacs-Style Website
 
-A minimalist website designed to look and feel like the Emacs text editor, featuring M-x command navigation.
+A minimalist website designed to look and feel like the Emacs, featuring M-x command navigation.
+
+https://github.com/user-attachments/assets/67a2bb70-6244-4596-ae4e-ee55a1a752e0
 
 ## Features
 
