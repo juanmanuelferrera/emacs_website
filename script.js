@@ -20,23 +20,35 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         'home': {
             func: () => switchBuffer('home', '*Home*'),
-            desc: 'Switch to Home buffer'
+            desc: 'Welcome and introduction'
         },
-        'about': {
-            func: () => switchBuffer('about', '*About*'),
-            desc: 'Switch to About buffer'
+        'research': {
+            func: () => switchBuffer('research', '*Research*'),
+            desc: 'Bhagavad Gita textual analysis'
+        },
+        'philosophy': {
+            func: () => switchBuffer('philosophy', '*Philosophy*'),
+            desc: 'Philosophical questions and comparative analysis'
         },
         'projects': {
             func: () => switchBuffer('projects', '*Projects*'),
-            desc: 'Switch to Projects buffer'
+            desc: 'Software projects and tools'
+        },
+        'espanol': {
+            func: () => switchBuffer('espanol', '*Español*'),
+            desc: 'Contenido en idioma español'
+        },
+        'writings': {
+            func: () => switchBuffer('writings', '*Writings*'),
+            desc: 'Articles, essays, and publications'
         },
         'contact': {
             func: () => switchBuffer('contact', '*Contact*'),
-            desc: 'Switch to Contact buffer'
+            desc: 'Contact information'
         },
         'scratch': {
             func: () => switchBuffer('scratch', '*scratch*'),
-            desc: 'Switch to scratch buffer'
+            desc: 'Scratch buffer for notes'
         },
         'help': {
             func: () => showHelp(),
@@ -63,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
             modeLineBuffer.textContent = displayName;
             closeMinibuffer();
             showMessage(`Switched to ${displayName}`);
+
+            // Scroll to top
+            targetBuffer.scrollTop = 0;
         }
     }
 
@@ -70,8 +85,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function showBufferList() {
         const bufferList = [
             { name: 'home', display: '*Home*' },
-            { name: 'about', display: '*About*' },
+            { name: 'research', display: '*Research*' },
+            { name: 'philosophy', display: '*Philosophy*' },
             { name: 'projects', display: '*Projects*' },
+            { name: 'espanol', display: '*Español*' },
+            { name: 'writings', display: '*Writings*' },
             { name: 'contact', display: '*Contact*' },
             { name: 'scratch', display: '*scratch*' }
         ];
