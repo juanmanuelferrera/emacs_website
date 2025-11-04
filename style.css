@@ -29,7 +29,7 @@
 
 body {
     font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1.6;
     background-color: var(--bg-main);
     color: var(--fg-main);
@@ -64,7 +64,7 @@ body {
     white-space: pre-wrap;
     font-family: "iA Writer Mono S", "Menlo", "Monaco", "Courier New", monospace;
     line-height: 1.8;
-    font-size: 16px;
+    font-size: 18px;
 }
 
 /* Mode line styling */
