@@ -570,6 +570,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const modeSpan = document.querySelector('.mode-line-mode');
         modeSpan.textContent = 'Fundamental';
         modeSpan.style.color = '#44bc44';
+
+        // Re-apply org-mode parsing after editing
+        applyOrgMode(currentBufferId);
     }
 
     // Save current buffer
@@ -1415,11 +1418,11 @@ ${text}
         const content = targetBuffer.querySelector('.buffer-content');
         if (!content) return;
 
-        // Check if already processed (has org-heading elements)
-        if (content.querySelector('.org-heading')) return;
+        // Get plain text content (stripping any existing org-mode markup)
+        const text = content.textContent || content.innerText;
 
-        // Parse and wrap org-mode headings
-        const text = content.innerHTML;
+        // Only process if there are org-mode headings (lines starting with *)
+        if (!text.match(/^\*+\s+/m)) return;
         const lines = text.split('\n');
         let result = [];
         let currentLevel = 0;
