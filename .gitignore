@@ -18,3 +18,12 @@ dist/
 build/
 .DS_Store
 .DS_Store
+
+# --- añadido por limpiar-basura.sh ---
+.DS_Store
+__pycache__/
+*.pyc
+*~
+\#*\#
+.\#*
+*.log
